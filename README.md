@@ -49,14 +49,3 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```text
 Swagger UI: http://localhost:8000/docs
 ```
-
----
-
-### 🛠️ 반영 방법
-
-기존 `README.md` 내용을 위 내용으로 덮어씌우신 후, 다시 한 번 깃허브에 올려주세요.
-
-```bash
-git add README.md
-git commit -m "Docs: README.md 디렉토리 구조 및 역할 중심으로 수정"
-git push origin main
