@@ -26,3 +26,37 @@ app/
 ├── api/                 # API 엔드포인트 라우터 (v1, v2 등 버전별 라우팅)
 │   └── routes/           # 실제 기능별 API 경로 (users.py, vocab.py 등)
 └── core/                # 공통 설정 (보안, JWT 설정, 환경 변수 로드 등)
+```
+
+## 🚀 시작하기 (Quick Start)
+1. 패키지 설치
+프로젝트에 필요한 의존성 라이브러리를 설치합니다.
+
+```text
+pip install -r requirements.txt
+```
+
+2. 서버 실행
+개발 환경에서 실시간 리로딩을 포함하여 서버를 구동합니다.
+```
+
+```text
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+3. API 문서 확인
+서버 실행 후 아래 주소에서 대화형 API 문서를 이용할 수 있습니다.
+
+```text
+Swagger UI: http://localhost:8000/docs
+```
+
+---
+
+### 🛠️ 반영 방법
+
+기존 `README.md` 내용을 위 내용으로 덮어씌우신 후, 다시 한 번 깃허브에 올려주세요.
+
+```bash
+git add README.md
+git commit -m "Docs: README.md 디렉토리 구조 및 역할 중심으로 수정"
+git push origin main
