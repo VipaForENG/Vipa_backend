@@ -23,10 +23,32 @@ class UserResponse(BaseModel):
     study_count: int
     
     class Config:
-        # Pydantic V2에서는 from_attributes = True를 사용합니다.
         from_attributes = True
 
-# 4. 토큰 응답
+# 4. 토큰 응답 (로그인 성공 시 반환)
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+# 5. 토큰 해독 시 사용할 데이터 모델
+class TokenPayload(BaseModel):
+    sub: Optional[int] = None  # 토큰의 'sub' 필드에 담긴 user_id를 추출할 때 사용
+
+# 비밀번호 찾기 이메일 입력용
+class PasswordRecoveryEmail(BaseModel):
+    email: EmailStr
+
+# 인증 코드 검증용
+class VerifyRecoveryCode(BaseModel):
+    email: EmailStr
+    code: str
+
+# 실제 비밀번호 변경용
+class ResetPassword(BaseModel):
+    email: EmailStr
+    code: str
+    new_password: str
+
+# 결과 메시지 응답용
+class Msg(BaseModel):
+    message: str
