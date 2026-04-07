@@ -6,7 +6,9 @@ class Settings(BaseSettings):
     # --- 프로젝트 기본 설정 ---
     PROJECT_NAME: str = "VIPA_BACKEND"
     API_V1_STR: str = "/api/v1"
-    
+
+    # https://localhost:8000/api/v1/users/login
+
     # --- 데이터베이스 및 보안 ---
     DATABASE_URL: str = "" 
     SECRET_KEY: str = "YOUR_SUPER_SECRET_KEY"
