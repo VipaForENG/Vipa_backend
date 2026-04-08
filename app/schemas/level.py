@@ -20,3 +20,7 @@ class LevelTestDetail(LevelTestResponse):
 class LevelTestList(BaseModel):
     total_count: int
     results: List[LevelTestResponse]
+
+
+class EvaluateRequest(BaseModel):
+    user_answers: list

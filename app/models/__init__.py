@@ -2,9 +2,8 @@
 # 이 파일 없으면 models 패키지에서 from models import User 이런식으로 import할 때 에러남.
 
 from .user import User
+from .level import UserLevel, LevelTestResult
 from .robot import RobotControl
-from .user_level import UserLevel
-from .level_test_result import LevelTestResult
 from .main_category import MainCategory
 from .sub_category import SubCategory
 from .vocabulary import Vocabulary
