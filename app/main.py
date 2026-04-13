@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.database import engine, Base
 from app.core.config import settings
 from app.routes import user, level
+from app.api.v1.auth import router as auth_router
 
 # 1. DB 테이블 생성 (앱 실행 시 모델에 정의된 테이블이 없으면 자동 생성)
 # 주의: 이미 테이블이 있다면 아무 작업도 하지 않습니다.
@@ -23,11 +24,14 @@ app.add_middleware(
 )
 
 # 3. 라우터 등록
-# prefix를 "/api/v1/users"로 잡으면, signup 함수는 "/api/v1/users/signup"이 됩니다.
+# prefix를 "/api/v1/users"로 잡으면, signup 함수는 "/api/v1/users/signup" 경로로 접근
 app.include_router(user.router, prefix=f"{settings.API_V1_STR}/users", tags=["Users"])
 
-# [추가된 부분] 레벨 테스트 라우터를 연결합니다!
+# 레벨 테스트 라우터 https://localhost:8000/api/v1/level-test/questions, https://localhost:8000/api/v1/level-test/evaluate
 app.include_router(level.router, prefix=f"{settings.API_V1_STR}/level-test", tags=["Level Test"])
+
+# 로그인 API 인증 라우터 https://localhost:8000/api/v1/auth/google, https://localhost:8000/api/v1/auth/kakao
+app.include_router(auth_router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
 
 @app.get("/")
 def root():

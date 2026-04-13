@@ -34,6 +34,10 @@ class Token(BaseModel):
 class TokenPayload(BaseModel):
     sub: Optional[int] = None  # 토큰의 'sub' 필드에 담긴 user_id를 추출할 때 사용
 
+# 6. 소셜 로그인 요청 모델 (액세스 토큰을 담아서 보냄)
+class SocialLoginRequest(BaseModel):
+    access_token: str = Field(..., description="구글/카카오에서 발급받은 액세스 토큰")
+
 # 비밀번호 찾기 이메일 입력용
 class PasswordRecoveryEmail(BaseModel):
     email: EmailStr

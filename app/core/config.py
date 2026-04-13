@@ -7,13 +7,19 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "VIPA_BACKEND"
     API_V1_STR: str = "/api/v1"
 
-    # https://localhost:8000/api/v1/users/login
-
     # --- 데이터베이스 및 보안 ---
     DATABASE_URL: str = "" 
     SECRET_KEY: str = "YOUR_SUPER_SECRET_KEY"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
+
+
+
+    # 구글/카카오 UserInfo 엔드포인트
+    GOOGLE_USERINFO_URL: str = "https://www.googleapis.com/oauth2/v3/userinfo"
+    KAKAO_USERINFO_URL: str = "https://kapi.kakao.com/v2/user/me"
+
+
 
     # --- 이메일 설정 (추가됨) ---
     MAIL_USERNAME: str = ""

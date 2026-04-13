@@ -43,7 +43,7 @@ def create_access_token(subject: Union[str, Any], expires_delta: Optional[timede
 
 
 # ==========================================
-# 🔥 [신규 추가] 토큰 검증 및 유저 ID 추출 보초병
+# 토큰 검증 및 유저 ID 추출 보초병
 # ==========================================
 def get_current_user_id(token: str = Depends(oauth2_scheme)) -> int:
     """

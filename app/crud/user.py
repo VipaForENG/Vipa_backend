@@ -1,24 +1,39 @@
-from datetime import datetime
-from datetime import timezone
-
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
+
 from app.models.user import User
 from app.models.robot import RobotControl
 from app.schemas.user import UserCreate
 from app.core.security import get_password_hash
 
-# 유저 관련 CRUD 함수들
-# 이메일 중복 체크 함수
+# --- [내부 헬퍼 함수] 로봇 초기 설정 생성 ---
+def _create_initial_robot_setting(db: Session, user_id: int):
+    """
+    유저가 처음 생성될 때(일반/소셜 공통), 1:1 관계인 로봇 제어 데이터를 생성합니다.
+    """
+    db_robot = RobotControl(
+        user_id=user_id,
+        robot_ip=None,
+        is_auto_connect=False,
+        energy_level=100,
+        last_sync_at=datetime.now(timezone.utc),
+        motor_pitch_angle=90,
+        motor_yaw_angle=90
+    )
+    db.add(db_robot)
+    db.commit()
+
+# --- [조회] 이메일로 유저 찾기 ---
 def get_user_by_email(db: Session, email: str):
     """
-    이메일로 기존 유저가 있는지 조회합니다. (중복 가입 방지용)
+    이메일로 기존 유저가 있는지 조회합니다. (중복 가입 방지 및 계정 통합용)
     """
     return db.query(User).filter(User.email == email).first()
 
-# 유저 생성 함수
+# --- [생성] 일반 회원가입 ---
 def create_user(db: Session, user_in: UserCreate):
     """
-    새로운 유저를 생성하고, 기본 로봇 설정도 함께 생성합니다.
+    새로운 일반 유저를 생성하고, 기본 로봇 설정도 함께 생성합니다.
     """
     # 1. 비밀번호 암호화 (평문 -> 해시)
     hashed_password = get_password_hash(user_in.password)
@@ -26,29 +41,69 @@ def create_user(db: Session, user_in: UserCreate):
     # 2. 유저 객체 생성
     db_user = User(
         email=user_in.email,
-        password=hashed_password,  # 암호화된 비밀번호 저장
+        password=hashed_password,
         nickname=user_in.nickname,
         is_social=user_in.is_social,
         social_role=user_in.social_role,
-        study_count=0  # 초기 스터디 카운트는 0으로 설정
+        study_count=0
     )
     
     db.add(db_user)
-    db.commit()        # DB에 저장
-    db.refresh(db_user)   # 생성된 user_id를 객체에 반영
-    
-    # 3. 유저의 단짝 로봇(RobotControl) 초기 설정 자동 생성
-    # 유저가 생길 때 로봇도 같이 태어나야 함. (1:1 관계)
-    db_robot = RobotControl(
-        user_id=db_user.user_id,      # 생성된 유저 ID 연결 (FK)
-        robot_ip=None,                # 초기값은 없음
-        is_auto_connect=False,        # 기본값 false
-        energy_level=100,             # 초기 에너지 100
-        last_sync_at=datetime.now(timezone.utc), # 현재 시간으로 동기화 시작점 설정
-        motor_pitch_angle=90,         # 영점 조절 90도
-        motor_yaw_angle=90            # 영점 조절 90도
-    )
-    db.add(db_robot)
     db.commit()
+    db.refresh(db_user)
     
+    # 3. 로봇 초기 설정 자동 생성
+    _create_initial_robot_setting(db, db_user.user_id)
+    
+    return db_user
+
+# --- [업데이트] 비밀번호 설정/변경 ---
+def set_user_password(db: Session, user_id: int, plain_password: str):
+    """
+    소셜로 가입했던 유저가 일반 로그인을 위해 비밀번호를 처음 설정하거나 
+    기존 비밀번호를 변경할 때 사용합니다.
+    """
+    db_user = db.query(User).filter(User.user_id == user_id).first()
+    if not db_user:
+        return None
+    
+    # 비밀번호 해싱 후 저장
+    db_user.password = get_password_hash(plain_password)
+    
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+
+# --- 소셜 로그인 처리 (핵심 로직) ---
+def process_social_login(db: Session, email: str, nickname: str, provider_bit: int):
+    """
+    소셜 로그인 시 계정 통합 또는 신규 가입을 처리합니다. (비트마스크 적용)
+    - provider_bit: 구글=1, 카카오=2 등
+    """
+    db_user = get_user_by_email(db, email)
+    
+    if db_user:
+        # 시나리오 A: 기존 유저가 있다면 비트마스크 업데이트 (계정 통합)
+        # 예: 일반(0) | 구글(1) = 1 / 구글(1) | 카카오(2) = 2
+        db_user.is_social |= provider_bit
+        db.commit()
+        db.refresh(db_user)
+    else:
+        # 시나리오 B: 아예 새로운 소셜 유저라면 가입 처리
+        db_user = User(
+            email=email,
+            nickname=nickname,
+            password=None,  # 소셜 유저는 비밀번호가 없음
+            is_social=provider_bit,
+            social_role=0,
+            study_count=0
+        )
+        db.add(db_user)
+        db.commit()
+        db.refresh(db_user)
+        
+        # 신규 유저이므로 단짝 로봇 설정 생성
+        _create_initial_robot_setting(db, db_user.user_id)
+        
     return db_user
