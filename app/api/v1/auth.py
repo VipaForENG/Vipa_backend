@@ -64,6 +64,9 @@ async def login_kakao(
         provider_bit=SOCIAL_KAKAO
     )
     
+    user_level = level_crud.get_user_level(db, user_id=user.user_id)
+    is_tested = True if user_level else False
+    
     # 3. VIPA 전용 JWT 발행
     return {
         "access_token": create_access_token(user.user_id), 
