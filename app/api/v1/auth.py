@@ -1,4 +1,8 @@
 # app/api/v1/auth.py
+
+from app.crud import level as level_crud
+
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -30,11 +34,14 @@ async def login_google(
         nickname=social_info["nickname"], 
         provider_bit=SOCIAL_GOOGLE
     )
-    
+    user_level = level_crud.get_user_level(db, user_id=user.user_id)
+    is_tested = True if user_level else False
+
     # 3. VIPA 전용 JWT 발행
     return {
         "access_token": create_access_token(user.user_id), 
-        "token_type": "bearer"
+        "token_type": "bearer",
+        "is_tested": is_tested
     }
 
 @router.post("/login/kakao", response_model=Token)
@@ -60,5 +67,6 @@ async def login_kakao(
     # 3. VIPA 전용 JWT 발행
     return {
         "access_token": create_access_token(user.user_id), 
-        "token_type": "bearer"
+        "token_type": "bearer",
+        "is_tested": is_tested
     }
