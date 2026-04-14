@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.database import engine, Base
 from app.core.config import settings
-from app.routes import user, level
+from app.routes import chat, user, level, home
 from app.api.v1.auth import router as auth_router
 
 # 1. DB 테이블 생성 (앱 실행 시 모델에 정의된 테이블이 없으면 자동 생성)
@@ -33,6 +33,11 @@ app.include_router(level.router, prefix=f"{settings.API_V1_STR}/level-test", tag
 # 로그인 API 인증 라우터 https://localhost:8000/api/v1/auth/google, https://localhost:8000/api/v1/auth/kakao
 app.include_router(auth_router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
 
+# 홈 화면 라우터 https://localhost:8000/api/v1/home/summary
+app.include_router(home.router, prefix=f"{settings.API_V1_STR}/home", tags=["Home"])
+
+# 프리토킹 화면 라우터 https://localhost:8000/api/v1/chat/talk
+app.include_router(chat.router, prefix=f"{settings.API_V1_STR}/chat", tags=["Chat"])
 @app.get("/")
 def root():
     return {

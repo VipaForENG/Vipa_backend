@@ -3,6 +3,8 @@ import os
 import json
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
+from typing import List, Iterable
+from openai.types.chat import ChatCompletionMessageParam
 
 # 환경 변수 로드 (.env 파일에서 API 키를 가져옵니다)
 load_dotenv()
@@ -149,4 +151,63 @@ async def analyze_user_answers(user_answers: list) -> dict:
             "overall_score": 0.0,
             "raw_analysis_json": {"error": "분석 중 서버 에러가 발생했습니다.", "details": str(e)},
             "weakness_tags": "평가불가"
+        }
+    
+# 실시간 대화 처리 함수
+async def get_chat_response(user_message: str, history: list, cefr_level: str) -> dict:
+    """
+    [3단계] 실시간 대화 처리
+    유저의 CEFR 레벨(A1~C2)에 맞춰 답변 난이도를 조절합니다.
+    """
+    system_prompt = f"""
+    You are VIPA, a friendly AI English tutor.
+    User's CEFR Level: {cefr_level} 
+    
+    [Rules]
+    1. Strictly adjust your vocabulary and grammar complexity to the user's CEFR level ({cefr_level}).
+    2. Provide a natural English response and its Korean translation.
+    3. Briefly correct the user's grammar only if there's a significant error.
+    4. MUST respond in JSON format.
+    
+    [JSON Schema]
+    {{
+        "en": "AI's English response",
+        "ko": "Korean translation",
+        "feedback": "Concise grammar feedback or 'Perfect!'",
+        "understanding_score": 0-100
+    }}
+    """
+
+    try:
+        # 대화 기록(history)에 현재 메시지 추가하여 맥락 유지
+        messages: List[ChatCompletionMessageParam] = [
+        {"role": "system", "content": system_prompt}]
+        # 최신 대화 5개만 유지 (토큰 절약)
+        for msg in history[-5:]:
+            messages.append({
+                "role": msg.get("role", "user"), 
+                "content": msg.get("content", "")
+            })
+        messages.append({"role": "user", "content": user_message})
+
+        response = await client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=messages,
+            response_format={"type": "json_object"},
+            max_completion_tokens=150,  # 응답 길이 제한 (토큰 절약)
+            temperature=0.8
+        )
+
+        raw_content = response.choices[0].message.content
+        if raw_content is None: raise ValueError("No content")
+            
+        return json.loads(raw_content)
+
+    except Exception as e:
+        print(f"Chat Error: {e}")
+        return {
+            "en": "I'm sorry, I'm having trouble connecting.",
+            "ko": "죄송해요, 연결에 문제가 발생했습니다.",
+            "feedback": "N/A",
+            "understanding_score": 0
         }
