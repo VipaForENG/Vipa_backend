@@ -14,6 +14,7 @@ from app.schemas.user import (
     Msg, VerifyRecoveryCode, PasswordRecoveryEmail, 
     UserCreate, UserLogin, UserResponse, Token, ResetPassword
 )
+from app.crud import level as level_crud
 
 router = APIRouter()
 
@@ -52,9 +53,19 @@ def login(user_in: UserLogin, db: Session = Depends(get_db)):
             detail="이메일 또는 비밀번호가 일치하지 않습니다."
         )
 
+    # 레벨 테스트 기록이 있는지 확인
+    # level_crud에 유저의 레벨 정보를 가져오는 함수가 있다고 가정합니다.
+    user_level = level_crud.get_user_level(db, user_id=db_user.user_id)
+    is_tested = True if user_level else False
+
+
     # 유저 ID를 기반으로 액세스 토큰 생성
     access_token = security.create_access_token(subject=db_user.user_id)
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {
+        "access_token": access_token, 
+        "token_type": "bearer",
+        "is_tested": is_tested 
+    }
 
 
 # --- [비밀번호 찾기 프로세스] ---

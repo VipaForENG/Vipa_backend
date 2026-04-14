@@ -29,6 +29,7 @@ class UserResponse(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    is_tested: bool
 
 # 5. 토큰 해독 시 사용할 데이터 모델
 class TokenPayload(BaseModel):
