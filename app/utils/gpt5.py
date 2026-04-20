@@ -3,14 +3,15 @@ import os
 import json
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
-from typing import List, Iterable
+from typing import List
 from openai.types.chat import ChatCompletionMessageParam
+from sqlalchemy.orm import Session
+from datetime import date
 
 # 환경 변수 로드 (.env 파일에서 API 키를 가져옵니다)
 load_dotenv()
 
 # 비동기 클라이언트 인스턴스 생성
-# 2026년 기준 최신 SDK 방식입니다.
 client = AsyncOpenAI(
     api_key=os.environ.get("OPENAI_API_KEY")
 )
@@ -18,11 +19,32 @@ client = AsyncOpenAI(
 # 사용할 모델명
 MODEL_NAME = "gpt-5.4-mini" 
 
+# ==========================================
+# [DB 연동 뼈대] 실제 CRUD 로직으로 교체해야 할 부분
+# ==========================================
+async def get_daily_token_usage(user_id: int) -> int:
+    """
+    TODO: DB에서 해당 유저의 '오늘' 누적 토큰 사용량을 조회하는 함수로 교체하세요.
+    (예: SELECT used_tokens FROM daily_study_summary WHERE user_id = ? AND date = TODAY)
+    """
+    # 임시 반환값 (현재 0 토큰 사용 중이라고 가정)
+    return 0
+
+async def update_daily_token_usage(user_id: int, used_tokens: int) -> None:
+    """
+    TODO: DB에 방금 사용한 토큰을 누적 합산하는 함수로 교체하세요.
+    (예: UPDATE daily_study_summary SET used_tokens = used_tokens + ? WHERE ...)
+    """
+    # 임시 처리 (실제로는 DB에 UPDATE 쿼리를 날립니다)
+    print(f"[토큰 기록] 유저 {user_id}가 {used_tokens} 토큰을 추가로 사용했습니다.")
+    pass
+# ==========================================
+
+
 async def generate_test_questions() -> list:
     """
-    GPT API를 호출하여 CEFR A1~C2 레벨이 혼합된 20문항을 JSON 배열 형태로 생성합니다.
+    [1단계] GPT API를 호출하여 CEFR A1~C2 레벨이 혼합된 20문항을 JSON 배열 형태로 생성합니다.
     """
-    # 1. 프롬프트 설계 (JSON 구조를 명확히 지시)
     system_prompt = """
     당신은 20년 경력의 전문 영어 교육학자이자 CEFR 레벨 평가 전문가입니다.
     사용자의 영어 실력을 측정하기 위한 20개의 객관식 빈칸 추론 문제를 생성해야 합니다.
@@ -48,31 +70,25 @@ async def generate_test_questions() -> list:
     """
 
     try:
-        # 2. 비동기 API 호출 (JSON 모드 활성화)
         response = await client.chat.completions.create(
             model=MODEL_NAME,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": "지금 바로 20개의 레벨 테스트 문항을 생성해줘."}
             ],
-            response_format={"type": "json_object"}, # 핵심: JSON 응답 강제
-            temperature=0.7 # 너무 창의적이지도, 너무 뻔하지도 않은 적절한 수치
+            response_format={"type": "json_object"}, 
+            temperature=0.7 
         )
         
-        # 3. 응답 결과 파싱
         raw_content = response.choices[0].message.content
-        
-        # Pylance 에러 해결: raw_content가 None일 경우 예외를 발생시켜 except 블록으로 보냄
         if raw_content is None:
             raise ValueError("GPT-5 응답에 내용(content)이 없습니다.")
             
         parsed_data = json.loads(raw_content)
-        
         return parsed_data.get("questions", [])
 
     except Exception as e:
         print(f"GPT 질문 생성 중 에러 발생: {e}")
-        # 에러 발생 시 앱이 뻗지 않도록 최소한의 기본 문항 반환 (Fallback)
         return [
             {
                 "id": 1, "cefr_level": "A1", 
@@ -81,15 +97,12 @@ async def generate_test_questions() -> list:
             }
         ]
 
-
 async def analyze_user_answers(user_answers: list) -> dict:
     """
     [2단계] 유저가 제출한 20개의 답변을 분석하여 CEFR 레벨과 상세 JSON 프로필을 반환합니다.
     """
-    # 1. 프론트엔드에서 넘어온 리스트 데이터를 AI가 읽기 좋게 문자열로 변환
     answers_text = json.dumps(user_answers, ensure_ascii=False, indent=2)
 
-    # 2. 초정밀 프롬프트 설계 (AI에게 채점 기준과 반환 스키마를 강제합니다)
     system_prompt = """
     당신은 20년 경력의 깐깐하고 정확한 원어민 영어 평가자입니다.
     사용자가 푼 20개의 영어 문제(객관식 빈칸 추론 등) 답변 데이터가 주어집니다. 
@@ -102,7 +115,7 @@ async def analyze_user_answers(user_answers: list) -> dict:
 
     [필수 JSON 스키마 형태]
     {
-        "cefr_level": "B1",  // A1, A2, B1, B2, C1, C2 중 하나
+        "cefr_level": "B1", 
         "overall_score": 75.5,
         "raw_analysis_json": {
             "correct_answers_count": 15,
@@ -115,7 +128,6 @@ async def analyze_user_answers(user_answers: list) -> dict:
     """
 
     try:
-        # 3. 비동기 API 호출 (JSON 응답 강제)
         response = await client.chat.completions.create(
             model=MODEL_NAME,
             messages=[
@@ -123,19 +135,14 @@ async def analyze_user_answers(user_answers: list) -> dict:
                 {"role": "user", "content": f"다음 사용자의 답변 데이터를 정밀 분석해줘:\n{answers_text}"}
             ],
             response_format={"type": "json_object"},
-            # 🔥 채점과 분석은 창의성보다 '정확성/일관성'이 중요하므로 온도를 낮춥니다.
             temperature=0.2 
         )
         
         raw_content = response.choices[0].message.content
-        
-        # Pylance 에러 방어막
         if raw_content is None:
             raise ValueError("GPT-5 응답에 내용(content)이 없습니다.")
             
         parsed_data = json.loads(raw_content)
-        
-        # 4. 라우터가 기대하는 딕셔너리 형태로 안전하게 파싱하여 반환
         return {
             "cefr_level": parsed_data.get("cefr_level", "A1"),
             "overall_score": float(parsed_data.get("overall_score", 0.0)),
@@ -145,7 +152,6 @@ async def analyze_user_answers(user_answers: list) -> dict:
 
     except Exception as e:
         print(f"답변 분석 중 에러 발생: {e}")
-        # 에러 발생 시 시스템 멈춤 방지용 기본값 (Fallback)
         return {
             "cefr_level": "A1",
             "overall_score": 0.0,
@@ -153,12 +159,24 @@ async def analyze_user_answers(user_answers: list) -> dict:
             "weakness_tags": "평가불가"
         }
     
-# 실시간 대화 처리 함수
-async def get_chat_response(user_message: str, history: list, cefr_level: str) -> dict:
+async def get_chat_response(db: Session, user_id: int, user_message: str, history: list, cefr_level: str, today: date) -> dict:
     """
-    [3단계] 실시간 대화 처리
-    유저의 CEFR 레벨(A1~C2)에 맞춰 답변 난이도를 조절합니다.
+    [3단계] 실시간 대화 처리 및 토큰 관리
+    유저의 CEFR 레벨(A1~C2)에 맞춰 답변 난이도를 조절하며, 일일 토큰 한도를 체크합니다.
     """
+    # 1. [사전 체크] 유저의 오늘 토큰 사용량 확인
+    daily_limit = 50000  # 하루 최대 허용 토큰 (필요시 환경변수로 분리)
+    current_usage = await get_daily_token_usage(user_id) 
+    
+    # 토큰 한도를 초과한 경우 API 호출을 막고 즉시 종료 안내 반환
+    if current_usage >= daily_limit:
+        return {
+            "en": "You've reached your daily conversation limit. See you tomorrow!",
+            "ko": "오늘의 대화 한도를 모두 사용하셨어요. 내일 또 만나요!",
+            "feedback": "Limit Reached",
+            "understanding_score": 0
+        }
+    
     system_prompt = f"""
     You are VIPA, a friendly AI English tutor.
     User's CEFR Level: {cefr_level} 
@@ -179,10 +197,9 @@ async def get_chat_response(user_message: str, history: list, cefr_level: str) -
     """
 
     try:
-        # 대화 기록(history)에 현재 메시지 추가하여 맥락 유지
-        messages: List[ChatCompletionMessageParam] = [
-        {"role": "system", "content": system_prompt}]
-        # 최신 대화 5개만 유지 (토큰 절약)
+        messages: List[ChatCompletionMessageParam] = [{"role": "system", "content": system_prompt}]
+        
+        # 최신 대화 5개만 유지 (컨텍스트 토큰 비용 절약)
         for msg in history[-5:]:
             messages.append({
                 "role": msg.get("role", "user"), 
@@ -190,13 +207,20 @@ async def get_chat_response(user_message: str, history: list, cefr_level: str) -
             })
         messages.append({"role": "user", "content": user_message})
 
+        # 2. [API 호출]
         response = await client.chat.completions.create(
             model=MODEL_NAME,
             messages=messages,
             response_format={"type": "json_object"},
-            max_completion_tokens=150,  # 응답 길이 제한 (토큰 절약)
+            max_completion_tokens=400,  # 응답 길이 제한 (토큰 절약)
             temperature=0.8
         )
+
+        # 3. [사후 기록] 사용된 토큰(Prompt + Completion) 추출 및 DB 업데이트
+        if response.usage:
+            total_tokens_used = response.usage.total_tokens
+            # 비동기로 DB 업데이트 실행 (대화 흐름을 막지 않음)
+            await update_daily_token_usage(user_id, total_tokens_used)
 
         raw_content = response.choices[0].message.content
         if raw_content is None: raise ValueError("No content")
