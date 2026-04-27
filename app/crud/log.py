@@ -4,6 +4,54 @@ from app.models.user import User
 from app.models.summary import DailyStudySummary  # 최적화를 위한 집계 모델 추가
 from datetime import datetime, timedelta
 from fastapi import HTTPException, status
+from datetime import date, timedelta
+
+
+def calculate_continuous_attendance(db: Session, user_id: int) -> int:
+    """
+    사용자의 연속 출석 일수를 계산합니다.
+    - 오늘 공부 기록이 있으면 오늘부터 카운트
+    - 오늘 기록이 없어도 어제 기록이 있으면 어제까지의 스트릭 유지
+    - 어제조차 기록이 없으면 스트릭 0
+    """
+    # 1. 유저의 모든 출석 날짜를 내림차순(최신순)으로 가져옵니다. (중복 제거)
+    attendance_dates = db.query(DailyStudySummary.study_date)\
+        .filter(DailyStudySummary.user_id == user_id)\
+        .distinct()\
+        .order_by(DailyStudySummary.study_date.desc())\
+        .all()
+
+    if not attendance_dates:
+        return 0
+
+    # SQLAlchemy 결과 객체에서 date 리스트로 변환
+    date_list = [d.study_date for d in attendance_dates]
+    
+    today = date.today()
+    yesterday = today - timedelta(days=1)
+    
+    # 마지막 학습일 확인
+    last_study_date = date_list[0]
+    
+    # 어제조차 공부를 안 했다면 연속성 파괴 (0일)
+    if last_study_date < yesterday:
+        return 0
+    
+    # 오늘 아직 안 했어도 어제까지 했으면 어제부터 카운트 시작
+    # 오늘 했으면 오늘부터 카운트 시작
+    streak = 0
+    current_check_date = last_study_date
+    
+    for study_date in date_list:
+        if study_date == current_check_date:
+            streak += 1
+            current_check_date -= timedelta(days=1) # 하루 전 날짜로 업데이트
+        else:
+            # 날짜가 연속되지 않으면 루프 중단
+            break
+            
+    return streak
+
 
 def get_home_summary(db: Session, user_id: int):
     """
@@ -74,6 +122,8 @@ def get_home_summary(db: Session, user_id: int):
         DailyStudySummary.study_date <= end_of_week.isoformat() # 닫힌 구간으로 확실히 제한!
     ).distinct().all()
 
+    continuous_attendance = calculate_continuous_attendance(db, user_id)
+
     # 2. 요일 정렬 버그 해결 (한글 정렬 대신 요일 인덱스(0~6)로 정렬)
     days_map = {0: "월", 1: "화", 2: "수", 3: "목", 4: "금", 5: "토", 6: "일"}
     
@@ -90,6 +140,7 @@ def get_home_summary(db: Session, user_id: int):
         "top_percent": top_percent,
         "weekly_data": weekly_data,      
         "attendance": attendance,        # 이제 무조건 이번 주 데이터만, 월~일 순서대로 나옵니다!
+        "continuous_attendance_count": continuous_attendance,
         "study_achievement_rate": 90     
     }
 
