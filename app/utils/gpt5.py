@@ -5,7 +5,7 @@ from openai import AsyncOpenAI
 from dotenv import load_dotenv
 from typing import List
 from openai.types.chat import ChatCompletionMessageParam
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import date
 
 # 환경 변수 로드 (.env 파일에서 API 키를 가져옵니다)
@@ -22,20 +22,16 @@ MODEL_NAME = "gpt-5.4-mini"
 # ==========================================
 # [DB 연동 뼈대] 실제 CRUD 로직으로 교체해야 할 부분
 # ==========================================
-async def get_daily_token_usage(user_id: int) -> int:
+async def get_daily_token_usage(db: AsyncSession, user_id: int) -> int:
     """
-    TODO: DB에서 해당 유저의 '오늘' 누적 토큰 사용량을 조회하는 함수로 교체하세요.
-    (예: SELECT used_tokens FROM daily_study_summary WHERE user_id = ? AND date = TODAY)
+    TODO: 실제 DB 로직 연동 필요
     """
-    # 임시 반환값 (현재 0 토큰 사용 중이라고 가정)
     return 0
 
-async def update_daily_token_usage(user_id: int, used_tokens: int) -> None:
+async def update_daily_token_usage(db: AsyncSession, user_id: int, used_tokens: int) -> None:
     """
-    TODO: DB에 방금 사용한 토큰을 누적 합산하는 함수로 교체하세요.
-    (예: UPDATE daily_study_summary SET used_tokens = used_tokens + ? WHERE ...)
+    TODO: 실제 DB 로직 연동 필요
     """
-    # 임시 처리 (실제로는 DB에 UPDATE 쿼리를 날립니다)
     print(f"[토큰 기록] 유저 {user_id}가 {used_tokens} 토큰을 추가로 사용했습니다.")
     pass
 # ==========================================
@@ -159,16 +155,14 @@ async def analyze_user_answers(user_answers: list) -> dict:
             "weakness_tags": "평가불가"
         }
     
-async def get_chat_response(db: Session, user_id: int, user_message: str, history: list, cefr_level: str, today: date) -> dict:
+async def get_chat_response(db: AsyncSession, user_id: int, user_message: str, history: list, cefr_level: str, today: date) -> dict:
     """
     [3단계] 실시간 대화 처리 및 토큰 관리
-    유저의 CEFR 레벨(A1~C2)에 맞춰 답변 난이도를 조절하며, 일일 토큰 한도를 체크합니다.
     """
-    # 1. [사전 체크] 유저의 오늘 토큰 사용량 확인
-    daily_limit = 50000  # 하루 최대 허용 토큰 (필요시 환경변수로 분리)
-    current_usage = await get_daily_token_usage(user_id) 
+    daily_limit = 50000 
+    # 🚨 [수정] db 파라미터 전달 추가
+    current_usage = await get_daily_token_usage(db, user_id) 
     
-    # 토큰 한도를 초과한 경우 API 호출을 막고 즉시 종료 안내 반환
     if current_usage >= daily_limit:
         return {
             "en": "You've reached your daily conversation limit. See you tomorrow!",
@@ -197,30 +191,35 @@ async def get_chat_response(db: Session, user_id: int, user_message: str, histor
     """
 
     try:
-        messages: List[ChatCompletionMessageParam] = [{"role": "system", "content": system_prompt}]
+        messages: List[ChatCompletionMessageParam] = [
+            {"role": "system", "content": system_prompt}
+        ]
         
         # 최신 대화 5개만 유지 (컨텍스트 토큰 비용 절약)
         for msg in history[-5:]:
-            messages.append({
-                "role": msg.get("role", "user"), 
-                "content": msg.get("content", "")
-            })
+            role = msg.get("role", "user")
+            content = msg.get("content", "")
+            
+            # Pylance(OpenAI SDK) 에러 해결: 동적 문자열(str) 대신 명확한 Literal 주입
+            if role == "assistant":
+                messages.append({"role": "assistant", "content": content})
+            else:
+                messages.append({"role": "user", "content": content})
+                
         messages.append({"role": "user", "content": user_message})
 
-        # 2. [API 호출]
         response = await client.chat.completions.create(
             model=MODEL_NAME,
             messages=messages,
             response_format={"type": "json_object"},
-            max_completion_tokens=400,  # 응답 길이 제한 (토큰 절약)
+            max_completion_tokens=400, 
             temperature=0.8
         )
 
-        # 3. [사후 기록] 사용된 토큰(Prompt + Completion) 추출 및 DB 업데이트
         if response.usage:
             total_tokens_used = response.usage.total_tokens
-            # 비동기로 DB 업데이트 실행 (대화 흐름을 막지 않음)
-            await update_daily_token_usage(user_id, total_tokens_used)
+            # 🚨 [수정] db 파라미터 전달 추가
+            await update_daily_token_usage(db, user_id, total_tokens_used)
 
         raw_content = response.choices[0].message.content
         if raw_content is None: raise ValueError("No content")
