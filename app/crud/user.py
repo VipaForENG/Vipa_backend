@@ -23,6 +23,13 @@ def _create_initial_robot_setting(db: Session, user_id: int):
     db.add(db_robot)
     db.commit()
 
+# --- [조회] 닉네임으로 유저 찾기 ---
+def get_user_by_nickname(db: Session, nickname: str):
+    """
+    닉네임으로 기존 유저가 있는지 조회합니다. (중복 닉네임 방지용)
+    """
+    return db.query(User).filter(User.nickname == nickname).first()
+
 # --- [조회] 이메일로 유저 찾기 ---
 def get_user_by_email(db: Session, email: str):
     """

@@ -23,19 +23,33 @@ router = APIRouter()
 @router.post("/signup", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def signup(user_in: UserCreate, db: Session = Depends(get_db)):
     """
-    회원가입 API: 이메일 중복 확인 후 유저와 기본 로봇 데이터를 함께 생성합니다.
+    회원가입 API: 이메일 및 닉네임 중복을 개별적으로 확인합니다.
     """
-    # 1. 이미 가입된 이메일인지 중복 확인
-    db_user = user_crud.get_user_by_email(db, email=user_in.email)
-    if db_user:
+    # 1. 이메일 중복 확인
+    if user_crud.get_user_by_email(db, email=user_in.email):
         raise HTTPException(
             status_code=400,
-            detail="이미 존재하는 이메일입니다."
+            detail="이미 사용 중인 이메일입니다."
         )
     
-    # 2. CRUD 로직을 통해 유저+로봇 생성 (비밀번호 해싱은 CRUD 내부에서 처리됨)
-    new_user = user_crud.create_user(db=db, user_in=user_in)
-    return new_user
+    # 2. 닉네임 중복 확인 (추가)
+    # user_crud에 get_user_by_nickname 메서드가 구현되어 있어야 합니다.
+    if user_crud.get_user_by_nickname(db, nickname=user_in.nickname):
+        raise HTTPException(
+            status_code=400,
+            detail="이미 사용 중인 닉네임입니다."
+        )
+    
+    # 3. 유저 생성
+    try:
+        new_user = user_crud.create_user(db=db, user_in=user_in)
+        return new_user
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail="서버 내부 에러가 발생했습니다."
+        )
 
 
 @router.post("/login", response_model=Token)
