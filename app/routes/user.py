@@ -20,37 +20,40 @@ router = APIRouter()
 
 # --- [유저 기본 기능] ---
 
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
+
 @router.post("/signup", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def signup(user_in: UserCreate, db: Session = Depends(get_db)):
     """
-    회원가입 API: 이메일 및 닉네임 중복을 개별적으로 확인합니다.
+    회원가입 API: 이메일과 닉네임을 각각 검증하여 정확한 에러 메시지를 제공합니다.
     """
-    # 1. 이메일 중복 확인
+    # 1. 이메일 중복 선제 확인
     if user_crud.get_user_by_email(db, email=user_in.email):
         raise HTTPException(
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="이미 사용 중인 이메일입니다."
         )
     
-    # 2. 닉네임 중복 확인 (추가)
-    # user_crud에 get_user_by_nickname 메서드가 구현되어 있어야 합니다.
+    # 2. 닉네임 중복 선제 확인 (이제 Pylance 에러가 사라집니다)
     if user_crud.get_user_by_nickname(db, nickname=user_in.nickname):
         raise HTTPException(
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="이미 사용 중인 닉네임입니다."
         )
     
-    # 3. 유저 생성
+    # 3. 데이터베이스 저장 및 예외 처리
     try:
         new_user = user_crud.create_user(db=db, user_in=user_in)
         return new_user
-    except Exception as e:
+    except IntegrityError:
         db.rollback()
+        # 선제 검사를 했음에도 동시성 이슈로 에러가 날 경우를 대비한 최후의 방어선
         raise HTTPException(
-            status_code=500,
-            detail="서버 내부 에러가 발생했습니다."
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="이미 등록된 이메일 또는 닉네임입니다."
         )
-
 
 @router.post("/login", response_model=Token)
 def login(user_in: UserLogin, db: Session = Depends(get_db)):
