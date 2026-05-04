@@ -4,8 +4,7 @@
 from .user import User
 from .level import UserLevel, LevelTestResult
 from .robot import RobotControl
-from .main_category import MainCategory
-from .sub_category import SubCategory
+from .category import MainCategory, SubCategory
 from .vocabulary import Vocabulary
 from .custom_scenario import CustomScenario
 from .conversation_session import ConversationSession
