@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     MAIL_STARTTLS: bool = True
     MAIL_SSL_TLS: bool = False
 
+    # --- 추가된 AI 설정 ---
+    OPENAI_API_KEY: str = "" # 필드 정의가 있어야 .env에서 값을 읽어옵니다.
+
     # --- .env 파일 설정 ---
     model_config = SettingsConfigDict(
         env_file=".env", 

@@ -11,9 +11,10 @@ class MainCategory(Base):
     
 class SubCategory(Base):
     __tablename__ = "sub_category"
-    sub_cat_id = Column(Integer, primary_key=True)
+    sub_cat_id = Column(Integer, primary_key=True, index=True) 
+    # ondelete="CASCADE" 추가를 권장합니다.
     main_cat_id = Column(Integer, ForeignKey("main_category.main_cat_id", ondelete="CASCADE"), nullable=False)
     sub_title = Column(String(100), nullable=False)
-    ai_role = Column(TEXT)
+    ai_role = Column(TEXT, nullable=False)
 
     main_category = relationship("MainCategory", back_populates="sub_categories")

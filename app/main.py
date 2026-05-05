@@ -2,8 +2,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.database import engine, Base
 from app.core.config import settings
-from app.routes import chat, user, level, home , category
+from app.routes import chat, user, level, home , category, scenario
 from app.api.v1.auth import router as auth_router
+from app.core.base_data import init_db
+from fastapi.staticfiles import StaticFiles
+
 
 # 1. DB 테이블 생성 (앱 실행 시 모델에 정의된 테이블이 없으면 자동 생성)
 # 주의: 이미 테이블이 있다면 아무 작업도 하지 않습니다.
@@ -13,6 +16,8 @@ app = FastAPI(
     title=settings.PROJECT_NAME,
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # 2. CORS 설정 (Flutter 앱이나 웹에서 접근할 수 있도록 허용)
 app.add_middleware(
@@ -42,7 +47,16 @@ app.include_router(chat.router, prefix=f"{settings.API_V1_STR}/chat", tags=["Cha
 # 카테고리 화면 라우터 https://localhost:8000/api/v1/category/main-categories, https://localhost:8000/api/v1/category/sub-categories/{main_cat_id}
 app.include_router(category.router, prefix=f"{settings.API_V1_STR}/category", tags=["Category"])
 
+# 실전회화 화면 라우터 https://localhost:8000/api/v1/scenario/generate, https://localhost:8000/api/v1/scenario/evaluate, 
+# https://localhost:8000/api/v1/scenario/hint, https://localhost:8000/api/v1/scenario/complete
+app.include_router(scenario.router, prefix=f"{settings.API_V1_STR}/scenario", tags=["Scenario"])
 
+# 서버 시작 시 실행되는 로직
+@app.on_event("startup")
+async def startup_event():
+    # DB 테이블 생성 후 기초 데이터 적재 실행
+    Base.metadata.create_all(bind=engine)
+    init_db()
 
 @app.get("/")
 def root():
