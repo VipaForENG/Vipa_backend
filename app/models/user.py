@@ -1,9 +1,12 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from sqlalchemy import String, Integer, SmallInteger, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 from app.models.robot import RobotControl
+
+if TYPE_CHECKING:
+    from app.models.robot import RobotControl
 
 class User(Base):
     __tablename__ = "users"
