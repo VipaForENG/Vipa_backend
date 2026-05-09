@@ -119,7 +119,7 @@ async def create_custom_scenario(
         "session_id": new_session.session_id,
         "scenario_id": new_scenario.scenario_id,
         "difficulty_level": new_scenario.difficulty_level,
-        "generated_script": new_scenario.generated_script,
+        "generated_script": script_content,
         "created_at": new_scenario.created_at
     }
 
@@ -135,6 +135,8 @@ async def evaluate_user_response(db: Session, req: EvaluationRequest) -> Evaluat
 
     # 2. 이번 턴의 예상 정답(expected_en) 추출
     script_data = scenario.generated_script
+    if isinstance(script_data, str):
+        script_data = json.loads(script_data)
     turns = script_data.get("turns", [])
     
     # 'user'가 말할 차례인 턴만 골라냅니다.
@@ -218,7 +220,12 @@ def get_hint_for_turn(db: Session, req: HintRequest) -> HintResponse:
         raise HTTPException(status_code=404, detail="해당 시나리오를 찾을 수 없습니다.")
 
     # 2. 이번 턴의 데이터 추출
-    turns = scenario.generated_script.get("turns", [])
+    script_data = scenario.generated_script
+    if isinstance(script_data, str):
+        script_data = json.loads(script_data)
+        
+    # 이제 안전하게 .get()을 사용할 수 있습니다.
+    turns = script_data.get("turns", [])
     user_turns = [t for t in turns if t.get("speaker") == "user"]
     
     if req.turn_index >= len(user_turns):
