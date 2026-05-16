@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.database import engine, Base
 from app.core.config import settings
-from app.routes import chat, user, level, home , category, scenario, robot
+from app.routes import chat, user, level, home , category, scenario, robot, vocabulary
 from app.api.v1.auth import router as auth_router
 from app.core.base_data import init_db
 from fastapi.staticfiles import StaticFiles
@@ -37,21 +37,24 @@ app.include_router(level.router, prefix=f"{settings.API_V1_STR}/level-test", tag
 # 로그인 API 인증 라우터 https://localhost:8000/api/v1/auth/google, https://localhost:8000/api/v1/auth/kakao
 app.include_router(auth_router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
 
-# 홈 화면 라우터 https://localhost:8000/api/v1/home/summary
+# 홈 화면 라우터 http://localhost:8000/api/v1/home/summary
 app.include_router(home.router, prefix=f"{settings.API_V1_STR}/home", tags=["Home"])
 
-# 프리토킹 화면 라우터 https://localhost:8000/api/v1/chat/talk
+# 프리토킹 화면 라우터 http://localhost:8000/api/v1/chat/talk
 app.include_router(chat.router, prefix=f"{settings.API_V1_STR}/chat", tags=["Chat"])
 
-# 카테고리 화면 라우터 https://localhost:8000/api/v1/category/main-categories, https://localhost:8000/api/v1/category/sub-categories/{main_cat_id}
+# 카테고리 화면 라우터 http://localhost:8000/api/v1/category/main-categories, http://localhost:8000/api/v1/category/sub-categories/{main_cat_id}
 app.include_router(category.router, prefix=f"{settings.API_V1_STR}/category", tags=["Category"])
 
-# 실전회화 화면 라우터 https://localhost:8000/api/v1/scenario/generate, https://localhost:8000/api/v1/scenario/evaluate, 
-# https://localhost:8000/api/v1/scenario/hint, https://localhost:8000/api/v1/scenario/complete
+# 실전회화 화면 라우터 http://localhost:8000/api/v1/scenario/generate, http://localhost:8000/api/v1/scenario/evaluate, 
+# http://localhost:8000/api/v1/scenario/hint, http://localhost:8000/api/v1/scenario/complete
 app.include_router(scenario.router, prefix=f"{settings.API_V1_STR}/scenario", tags=["Scenario"])
 
-# 로봇 제어 라우터 https://localhost:8000/api/v1/robot/connect, https://localhost:8000/api/v1/robot/status, https://localhost:8000/api/v1/robot/face, https://localhost:8000/api/v1/robot/motor
+# 로봇 제어 라우터 http://localhost:8000/api/v1/robot/connect, http://localhost:8000/api/v1/robot/status, http://localhost:8000/api/v1/robot/face, http://localhost:8000/api/v1/robot/motor
 app.include_router(robot.router, prefix=f"{settings.API_V1_STR}/robot", tags=["Robot Control"])
+
+# 오늘의 어휘 화면 라우터 http://localhost:8000/api/v1/vocabulary/dashboard, http://localhost:8000/api/v1/vocabulary/quiz, http://localhost:8000/api/v1/vocabulary/quiz/session
+app.include_router(vocabulary.router, prefix=f"{settings.API_V1_STR}/vocabulary", tags=["Vocabulary"])
 
 # 서버 시작 시 실행되는 로직
 @app.on_event("startup")

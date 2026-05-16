@@ -234,3 +234,64 @@ async def get_chat_response(db: AsyncSession, user_id: int, user_message: str, h
             "feedback": "N/A",
             "understanding_score": 0
         }
+    
+
+async def generate_wrong_answer_hint(target_word: str, user_answer: str, context_sentence: str) -> str:
+    """
+    [즉석 검증 엔진] 유저가 입력한 오답과 정답의 맥락적/사전적 뉘앙스 차이를 GPT가 분석하여 
+    정답을 유추할 수 있도록 돕는 친절한 한국어 힌트를 생성합니다.
+    
+    Args:
+        target_word (str): 문장의 실제 영어 정답 단어 (예: 'customer')
+        user_answer (str): 사용자가 타이핑한 오답 단어 (예: 'guest')
+        context_sentence (str): 마스킹되기 전의 전체 원본 영어 예문
+        
+    Returns:
+        str: 유저에게 보여줄 1~2문장 내외의 정밀 피드백 힌트 메시지
+    """
+    
+    # 1. 오답과 정답의 차이점을 정밀 추적하도록 설계된 AI 가이드 프롬프트
+    system_prompt = """
+    당신은 20년 경력의 전문 영어 교육학자이자, 학생의 사소한 단어 선택 차이를 교정해 주는 친절한 AI 튜터 'VIPA'입니다.
+    사용자가 영어 문장의 빈칸 채우기 문제에서 정답 대신 유사한 다른 단어를 입력했습니다.
+    제공된 [데이터]를 바탕으로, 유저가 입력한 오답과 진짜 정답 간의 결정적인 문맥적/사전적 뉘앙스 차이를 짚어주는 힌트를 작성하세요.
+
+    [작성 규칙]
+    1. 절대로 정답 단어(Target Word)를 힌트 텍스트 내에 직접적으로 노출하거나 스펠링 힌트를 주지 마세요.
+    2. 유저가 입력한 오답(User Answer)의 정확한 한계점과 의미를 먼저 설명하세요.
+    3. 제공된 예문(Context Sentence) 속 상황에서 왜 정답 단어가 훨씬 더 자연스럽고 올바른 표현인지 그 뉘앙스 차이를 설명하세요.
+    4. 친절하고 부드러운 대화체 문장의 한국어로 작성하되, 반드시 1~2문장 이내로 명쾌하고 간결하게 끝마치세요.
+    """
+
+    user_content = f"""
+    [데이터]
+    - 원본 예문 (Context): {context_sentence}
+    - 진짜 정답 (Target Word): {target_word}
+    - 유저 오답 (User Answer): {user_answer}
+
+    위 데이터를 기반으로 정답을 직접 말하지 않는 최적의 뉘앙스 교정 힌트를 한국어로 생성해줘.
+    """
+
+    try:
+        # 2. GPT-5 비동기 API 채널 가동
+        response = await client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_content}
+            ],
+            temperature=0.4, # 힌트의 일관성과 정밀도를 위해 온도를 낮춤
+            max_completion_tokens=200 # 짤막한 문장 출력을 유도하여 토큰 비용 최적화
+        )
+        
+        # 3. 응답 텍스트 추출 및 데이터 검증
+        hint_result = response.choices[0].message.content
+        if hint_result is None:
+            raise ValueError("GPT-5가 힌트 메시지를 생성하지 못했습니다.")
+            
+        return hint_result.strip()
+
+    except Exception as e:
+        # 4. 실시간 AI 통신 장애를 방지하기 위한 안전한 하드코딩 Fallback 선언
+        print(f"오답 힌트 생성 중 엔지니어링 에러 발생: {e}")
+        return f"입력하신 '{user_answer}'도 유사한 맥락일 수 있으나, 본 예문의 문맥에서는 다른 단어가 더 자연스럽습니다. 단어의 글자 수와 뜻을 다시 한번 고민해 보세요!"
