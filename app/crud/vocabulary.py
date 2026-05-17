@@ -165,8 +165,8 @@ async def process_quiz_session(db: Session, user_id: int, answers: List[AnswerIt
         
         # 1. DB에 단어가 없는 목업 모드인지 확인하는 플래그 도입
         if not vocab:
-            true_word = "appointment" if item.sentence_id == 1 else ("circumstances" if item.sentence_id == 2 else "decision")
-            orig_expr = "I want to make an appointment with the doctor." if item.sentence_id == 1 else "Sample sentence"
+            true_word = "appointment" if item.sentence_id == 1 else ("circumstances" if item.sentence_id == 2 else "decision" if item.sentence_id == 3 else "decision")
+            orig_expr = "I want to make an appointment with the doctor." if item.sentence_id == 1 else ("Despite the challenging circumstances, she managed to pass." if item.sentence_id == 2 else "Please make your decision now for the final contract.")
             is_mock_data = True  # 목업 신호 켬
         else:
             true_word = vocab.target_word
@@ -237,10 +237,18 @@ async def check_single_answer_with_hint(db: Session, sentence_id: int, user_answ
     # 1. 대상 단어 레코드 쿼리
     vocab = db.query(Vocabulary).filter(Vocabulary.vocab_id == sentence_id).first()
     
-    # [방어 코드] CSV 전처리 전이라 DB가 비어있을 때의 목업 스위칭
+    # [방어 코드] CSV 전처리 전이라 DB가 비어있을 때의 목업 스위칭 (출제용 데이터와 동기화)
     if not vocab:
-        true_word = "customer" if sentence_id == 1 else "circumstances"
-        orig_expr = "We get most of our customer during lunchtime." if sentence_id == 1 else "Sample"
+        mock_db = {
+            1: {"word": "appointment", "expr": "I want to make an appointment with the doctor."},
+            2: {"word": "circumstances", "expr": "Despite the challenging circumstances, she managed to pass."},
+            3: {"word": "decision", "expr": "Please make your decision now for the final contract."}
+        }
+        
+        # sentence_id로 목업 데이터를 찾고, 없으면 fallback 빈값 처리
+        mock_item = mock_db.get(sentence_id, {"word": "unknown", "expr": ""})
+        true_word = mock_item["word"]
+        orig_expr = mock_item["expr"]
     else:
         true_word = vocab.target_word
         orig_expr = vocab.expression or ""

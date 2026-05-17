@@ -17,7 +17,7 @@ router = APIRouter()
 
 
 @router.get("/dashboard", response_model=VocabularyDashboardResponse)
-def get_vocabulary_dashboard(
+async def get_vocabulary_dashboard(
     db: Session = Depends(get_db),
     current_user_id: int = Depends(get_current_user_id)  # 🔥 [인증 통합]: 토큰에서 진짜 유저 ID 추출
 ):
@@ -32,7 +32,7 @@ def get_vocabulary_dashboard(
     # [Pylance 에러 해결]: 레벨 테스트를 보지 않았거나(None), 필드가 비어있을 경우 기본값 "A1"로 치환하는 방어 코드(Null-Safe)
     user_current_level = user_level_obj.cefr_level if (user_level_obj and user_level_obj.cefr_level) else "A1"
     
-    return vocab_crud.get_dashboard_data(
+    return await vocab_crud.get_dashboard_data(
         db=db, 
         user_id=current_user_id, 
         cefr_level=user_current_level
@@ -40,7 +40,7 @@ def get_vocabulary_dashboard(
 
 
 @router.get("/quiz", response_model=List[VocabularyQuizResponse])
-def get_personalized_quiz(
+async def get_personalized_quiz(
     new_count: int = 5,     # 프론트가 안 보내면 기본 5개 설정
     review_count: int = 10, # 기본 10개 설정
     retry_count: int = 10,  # 기본 10개 설정
@@ -56,7 +56,7 @@ def get_personalized_quiz(
     user_level_obj = level_crud.get_user_level(db, user_id=current_user_id)
     user_current_level = user_level_obj.cefr_level if (user_level_obj and user_level_obj.cefr_level) else "A1"
     
-    return vocab_crud.get_personalized_quiz(
+    return await vocab_crud.get_personalized_quiz(
         db=db, 
         user_id=current_user_id, 
         cefr_level=user_current_level,
@@ -67,7 +67,7 @@ def get_personalized_quiz(
 
 
 @router.post("/quiz/session", response_model=QuizSessionResultResponse)
-def submit_quiz_session(
+async def submit_quiz_session(
     payload: QuizSessionSubmitRequest, 
     db: Session = Depends(get_db),
     current_user_id: int = Depends(get_current_user_id)  # 🔥 [인증 통합]: 동적 유저 매핑
@@ -77,7 +77,7 @@ def submit_quiz_session(
     
     - 역할: 유저가 타이핑한 답안 배열을 검증하고, 오답 이력 로그를 누적 반영합니다.
     """
-    return vocab_crud.process_quiz_session(
+    return await vocab_crud.process_quiz_session(
         db=db, 
         user_id=current_user_id, 
         answers=payload.answers
