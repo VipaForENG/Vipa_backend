@@ -112,9 +112,9 @@ def process_chunk_on_gpu(gpu_id: int, df_chunk: pd.DataFrame, return_dict: dict)
     # 🌟 [수정] DB의 실제 테이블 컬럼명과 완전 일치하도록 데이터 프레임 뼈대를 조립합니다.
     df_chunk["target_word"] = target_words
     df_chunk["cefr_level"] = cefr_labels
-    df_chunk["expression"] = df_chunk["원문"]
-    df_chunk["meaning"] = df_chunk["번역문"]
-    df_chunk["confidence_score"] = confidence_scores # 필터링 조건 비교를 위한 임시 컬럼 생성
+    df_chunk["expression"] = df_chunk["원문"]       # 원문(영어) -> expression
+    df_chunk["meaning"] = df_chunk["번역문"]        # 번역문(한국어) -> meaning
+    df_chunk["confidence_score"] = confidence_scores
     
     # 5. [데이터 클리닝] 신뢰도 점수가 Threshold(0.3) 이상인 정제 데이터만 필터링
     cleaned_chunk = df_chunk[df_chunk["confidence_score"] >= CONFIDENCE_THRESHOLD]
@@ -160,7 +160,8 @@ if __name__ == "__main__":
 
     # 3. 자원 낭비 방지를 위해 가용 GPU 개수만큼 균등 분산 이등분 실행
     print(f"③ 분산 처리를 위한 데이터 분할 공정 가동 (균등 {num_gpus}등분)")
-    chunks = np.array_split(df, num_gpus)
+    chunk_size = int(np.ceil(len(df) / num_gpus))
+    chunks = [df.iloc[i:i + chunk_size].copy() for i in range(0, len(df), chunk_size)]
     
     manager = mp.Manager()
     return_dict = manager.dict()
