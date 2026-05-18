@@ -52,7 +52,7 @@ async def get_dashboard_data(db: Session, user_id: int, cefr_level: str) -> Voca
         )
 
     return VocabularyDashboardResponse(
-        new_words_count=new_count,
+        new_words_count=min(new_count, 5),  # 18만 개가 남아있어도 화면엔 최대 5로 표시
         review_words_count=review_count,
         retry_words_count=retry_count
     )
