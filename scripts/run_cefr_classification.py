@@ -69,7 +69,7 @@ def process_chunk_on_gpu(gpu_id: int, df_chunk: pd.DataFrame, return_dict: dict)
     model.eval()  # 추론 모드 전환 (기울기 계산 비활성화 준비)
     
     # 🚨 [수정] 영어 분류 모델이므로 '번역문'이 아닌 '영어 원문'을 정밀 분석 타겟으로 추출합니다.
-    sentences = df_chunk["원문"].astype(str).tolist()
+    sentences = df_chunk["번역문"].astype(str).tolist()
     
     cefr_labels = []
     confidence_scores = []
@@ -112,8 +112,8 @@ def process_chunk_on_gpu(gpu_id: int, df_chunk: pd.DataFrame, return_dict: dict)
     # 🌟 [수정] DB의 실제 테이블 컬럼명과 완전 일치하도록 데이터 프레임 뼈대를 조립합니다.
     df_chunk["target_word"] = target_words
     df_chunk["cefr_level"] = cefr_labels
-    df_chunk["expression"] = df_chunk["원문"]       # 원문(영어) -> expression
-    df_chunk["meaning"] = df_chunk["번역문"]        # 번역문(한국어) -> meaning
+    df_chunk["expression"] = df_chunk["번역문"]       # 원문(영어) -> expression
+    df_chunk["meaning"] = df_chunk["원문"]        # 번역문(한국어) -> meaning
     df_chunk["confidence_score"] = confidence_scores
     
     # 5. [데이터 클리닝] 신뢰도 점수가 Threshold(0.3) 이상인 정제 데이터만 필터링
