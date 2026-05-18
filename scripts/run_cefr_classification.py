@@ -130,10 +130,9 @@ def process_chunk_on_gpu(gpu_id: int, df_chunk: pd.DataFrame, return_dict: dict)
 
 
 if __name__ == "__main__":
-    # 멀티프로세스 시작 방식 설정 (CUDA 연산 안전성 확보)
+    # CUDA 다중 프로세스 메모리 충돌 방지를 위한 최우선 컨텍스트 설정
     mp.set_start_method('spawn', force=True)
     
-    # 서버컴퓨터 하드웨어 스펙 동적 수집
     num_gpus = torch.cuda.device_count()
     print(f"==================================================")
     print(f"🎯 VIPA 대규모 Qwen2.5 기반 데이터 정제 파이프라인 가동")
@@ -141,23 +140,34 @@ if __name__ == "__main__":
     print(f"==================================================")
 
     if num_gpus == 0:
-        print("❌ 치명적 오류: 가용 가능한 GPU 연산 디바이스가 없습니다. 공정을 중단합니다.")
+        print("❌ 에러: 가용 가능한 GPU 연산 디바이스가 없습니다.")
         exit(1)
 
-    # 1. AI 허브 로우 데이터셋 로드
-    print(f"① 원본 엑셀 데이터셋 로드 중... ({INPUT_EXCEL_PATH})")
+    # 🌟 [선행 공정 추가]: 멀티프로세스 충돌 방지를 위해 메인에서 모델을 먼저 안전하게 다운로드합니다.
+    print(f"① 허깅페이스로부터 [{MODEL_NAME}] 모델 및 토크나이저 사전 다운로드 중...")
+    try:
+        AutoTokenizer.from_pretrained(MODEL_NAME)
+        AutoModelForSequenceClassification.from_pretrained(MODEL_NAME)
+        print("▶ 모델 다운로드 및 캐싱 완료! 안전하게 병렬 공정을 전개합니다.")
+    except Exception as e:
+        print(f"❌ 모델 사전 다운로드 실패 (인터넷/미러 서버 확인 필요): {e}")
+        exit(1)
+
+    # 2. AI 허브 로우 데이터셋 로드
+    print(f"② 원본 엑셀 데이터셋 로드 중... ({INPUT_EXCEL_PATH})")
     df = pd.read_excel(INPUT_EXCEL_PATH, engine="openpyxl")
     print(f"▶ 로드 완료. 총 문장 수: {len(df):,}개")
 
-    # 2. 🚨 [수정] 하드코딩 제거: 자원 낭비 방지를 위해 가용 GPU 개수만큼 균등 분산 이등분 실행
+    # 3. 자원 낭비 방지를 위해 가용 GPU 개수만큼 균등 분산 이등분 실행
+    print(f"③ 분산 처리를 위한 데이터 분할 공정 가동 (균등 {num_gpus}등분)")
     chunks = np.array_split(df, num_gpus)
     
     manager = mp.Manager()
     return_dict = manager.dict()
     processes = []
 
-    # 3. 멀티 GPU 병렬 프로세스 생성 및 가동
-    print(f"② 병렬 프로세서 기법 기반 분산 추론 시작 (A100 가속화 공정)")
+    # 4. 멀티 GPU 병렬 프로세스 생성 및 가동
+    print(f"④ 병렬 프로세서 기법 기반 분산 추론 시작 (A100 가속화 공정)")
     for i in range(num_gpus):
         p = mp.Process(target=process_chunk_on_gpu, args=(i, chunks[i], return_dict))
         processes.append(p)
@@ -166,12 +176,11 @@ if __name__ == "__main__":
     for p in processes:
         p.join()
 
-    # 4. 🚨 [수정] 취합 부분도 하드코딩 인덱스를 지우고 루프를 돌며 동적 최종 결합 수행
-    print(f"③ 각 GPU 세탁 데이터 취합 및 최종 병합 중...")
+    # 5. 취합 및 동적 최종 결합 수행
+    print(f"⑤ 각 GPU 세탁 데이터 취합 및 최종 병합 중...")
     final_df = pd.concat([return_dict[i] for i in range(num_gpus)], ignore_index=True)
 
-    # 5. PostgreSQL 이식용 최종 CSV 저장
-    # 폴더가 없을 경우 자동 생성
+    # 6. PostgreSQL 이식용 최종 CSV 저장
     os.makedirs(os.path.dirname(OUTPUT_CSV_PATH), exist_ok=True)
     final_df.to_csv(OUTPUT_CSV_PATH, index=False, encoding="utf-8-sig")
     
