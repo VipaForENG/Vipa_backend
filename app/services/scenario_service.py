@@ -15,6 +15,7 @@ from app.models.conversation_session import ConversationSession
 from app.models.study_log import StudyLog
 from app.models.user import User
 from sqlalchemy import func
+from app.models.conversation_turn import ConversationTurn
 
 # db: AsyncSession -> db: Session 으로 변경
 # 실전회화 시나리오 생성 서비스
@@ -191,8 +192,20 @@ async def evaluate_user_response(db: Session, req: EvaluationRequest) -> Evaluat
         
     # 🔥 6. [신규 통합] 응답 파싱이 완료된 후, SentenceLog에 기록 남기기
     try:
+        # 1. 교정 데이터 기록 (Dashboard용)
+        new_turn = ConversationTurn(
+            session_id=req.session_id,
+            turn_index=req.turn_index,
+            user_input=req.user_input,
+            is_pass=eval_result.get("is_pass", False),
+            feedback_ko=eval_result.get("feedback_ko"),
+            corrected_en=eval_result.get("corrected_en")
+        )
+        db.add(new_turn)
+
+        # 2. 대화 기록 보존 (Transcript용 - 기존 SentenceLog 유지)
         new_log = SentenceLog(
-            session_id=req.session_id,            # 프론트엔드에서 넘겨받은 대화방 ID
+            session_id=req.session_id,
             sub_cat_id=scenario.sub_cat_id,
             role="user",
             original_text=req.user_input,
@@ -200,12 +213,12 @@ async def evaluate_user_response(db: Session, req: EvaluationRequest) -> Evaluat
             feedback_comment=eval_result.get("feedback_ko")
         )
         db.add(new_log)
-        db.commit()
+        
+        db.commit() # 한 번에 커밋
     except Exception as db_err:
-        db.rollback() # DB 저장 중 에러가 나면 롤백하여 안전성 확보
-        raise HTTPException(status_code=500, detail=f"문장 로그 저장 중 오류 발생: {str(db_err)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"로그 저장 중 오류: {str(db_err)}")
 
-    # 7. 최종 결과 반환
     return EvaluationResponse(**eval_result)
     
     

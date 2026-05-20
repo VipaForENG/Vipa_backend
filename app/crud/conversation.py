@@ -6,7 +6,7 @@ from app.models.conversation_session import ConversationSession
 from app.models.study_log import StudyLog
 # 💡 아래 두 개는 파트너님의 실제 모델에 맞게 임포트 하세요!
 from app.models.custom_scenario import CustomScenario 
-from app.models.conversation_turn import ConversationTurn # (방금 1번에서 만든 모델)
+from app.models.sentence_log import SentenceLog # AI 교정 노트용 모델 임포트
 from app.models.category import SubCategory
 
 
@@ -43,13 +43,25 @@ def get_conversation_history_dashboard(db: Session, user_id: int):
         })
 
     # 2. [AI 교정 리스트]
-    ai_corrections = db.query(ConversationTurn).join(
-        ConversationSession, ConversationTurn.session_id == ConversationSession.session_id
+    raw_corrections = db.query(SentenceLog).join(
+        ConversationSession, SentenceLog.session_id == ConversationSession.session_id
     ).filter(
         ConversationSession.user_id == user_id,
-        ConversationTurn.is_pass == False,
-        ConversationTurn.corrected_en.is_not(None)
-    ).order_by(desc(ConversationTurn.created_at)).limit(5).all()
+        SentenceLog.role == "user",
+        SentenceLog.corrected_text.is_not(None)
+    ).order_by(desc(SentenceLog.created_at)).limit(5).all()
+
+    # 🌟 핵심: 모델 객체를 Pydantic 스키마가 원하는 필드명으로 변환
+    ai_corrections = [
+        {
+            "turn_id": log.sentencelog_id,
+            "session_id": log.session_id,
+            "user_input": log.original_text,
+            "corrected_en": log.corrected_text,
+            "feedback_ko": log.feedback_comment
+        }
+        for log in raw_corrections
+    ]
 
     # 3. [카테고리 현황] SubCategory.sub_title 기준으로 그룹화
     progress_query = db.query(
