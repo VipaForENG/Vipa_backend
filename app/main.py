@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.database import engine, Base
 from app.core.config import settings
-from app.routes import chat, user, level, home , category, scenario, robot, vocabulary
+from app.routes import chat, user, level, home , category, scenario, robot, vocabulary, conversation
 from app.api.v1.auth import router as auth_router
 from app.core.base_data import init_db
 from fastapi.staticfiles import StaticFiles
@@ -46,9 +46,12 @@ app.include_router(chat.router, prefix=f"{settings.API_V1_STR}/chat", tags=["Cha
 # 카테고리 화면 라우터 http://localhost:8000/api/v1/category/main-categories, http://localhost:8000/api/v1/category/sub-categories/{main_cat_id}
 app.include_router(category.router, prefix=f"{settings.API_V1_STR}/category", tags=["Category"])
 
-# 실전회화 화면 라우터 http://localhost:8000/api/v1/scenario/generate, http://localhost:8000/api/v1/scenario/evaluate, 
+# 실전회화 화면 라우터 http://localhost:8000/api/v1/scenario/generate, http://localhost:8000/api/v1/scenario/evaluate,  http://localhost:8000/api/v1/scenario/history, http://localhost:8000/api/v1/scenario/dashboard/history, http://localhost:8000/api/v1/scenario/session/{session_id}/turns
 # http://localhost:8000/api/v1/scenario/hint, http://localhost:8000/api/v1/scenario/complete
 app.include_router(scenario.router, prefix=f"{settings.API_V1_STR}/scenario", tags=["Scenario"])
+
+# 실전 회화 대시보드 API http://localhost:8000/api/v1/conversation/dashboard/history
+app.include_router(conversation.router, prefix=f"{settings.API_V1_STR}/conversation", tags=["Conversation"])  # 실전 회화 대시보드 API 포함
 
 # 로봇 제어 라우터 http://localhost:8000/api/v1/robot/connect, http://localhost:8000/api/v1/robot/status, http://localhost:8000/api/v1/robot/face, http://localhost:8000/api/v1/robot/motor
 app.include_router(robot.router, prefix=f"{settings.API_V1_STR}/robot", tags=["Robot Control"])
