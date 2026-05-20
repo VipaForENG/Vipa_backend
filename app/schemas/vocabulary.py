@@ -76,9 +76,47 @@ class QuizAnswerCheckRequest(BaseModel):
     """실전 퀴즈 풀이 중 단일 문항에 대한 즉석 검증 요청 바디"""
     sentence_id: int = Field(..., description="현재 풀고 있는 문장 ID")
     user_answer: str = Field(..., description="유저가 입력창에 타이핑한 답변")
+    attempt_count: int = Field(1, description="현재 문항 풀이 시도 횟수 (1=힌트제공, 2이상=오답처리)")
 
 class QuizAnswerCheckResponse(BaseModel):
     """GPT의 뉘앙스 분석 힌트가 포함된 즉석 검증 응답 스펙"""
     is_correct: bool = Field(..., description="동적 정답 여부 (O/X)")
     target_word: str = Field(..., description="실제 정답 단어 (프론트엔드 디버깅 및 대조용)")
     hint_message: Optional[str] = Field(None, description="오답 시 GPT가 실시간으로 생성한 뉘앙스 교정 힌트 텍스트")
+
+
+
+
+# 1. 프론트엔드가 보내줄 토글 스위치 데이터 (True 또는 False)
+class BookmarkToggleRequest(BaseModel):
+    is_bookmarked: bool
+
+# 2. 리스트에서 보여줄 단어 1개의 상세 정보
+class BookmarkedVocabItem(BaseModel):
+    vocab_id: int
+    target_word: str
+    expression: Optional[str]
+    meaning: Optional[str]
+
+# 3. 프론트엔드에 응답할 최종 리스트 규격
+class BookmarkListResponse(BaseModel):
+    total_count: int
+    items: List[BookmarkedVocabItem]
+
+
+# 오늘의 학습 통계 및 오답 단어 리스트 반환용 스키마
+class DailyStats(BaseModel):
+    total_quizzes_today: int
+    correct_quizzes_today: int
+    accuracy_rate: float
+
+class WrongVocabItem(BaseModel):
+    vocab_id: int
+    target_word: str
+    expression: Optional[str]
+    meaning: Optional[str]
+    incorrect_count: int
+
+class DailyStudyResponse(BaseModel):
+    daily_stats: DailyStats
+    wrong_vocab_list: List[WrongVocabItem]

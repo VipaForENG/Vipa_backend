@@ -1,7 +1,10 @@
 import re
 from typing import List
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from datetime import date,datetime
+from sqlalchemy import func, desc, Date, cast
+
+
 
 from app.models.vocabulary import Vocabulary
 from app.models.vocabulary_study import VocabularyStudy
@@ -228,45 +231,184 @@ async def process_quiz_session(db: Session, user_id: int, answers: List[AnswerIt
         results=detailed_results
     )
 
-async def check_single_answer_with_hint(db: Session, sentence_id: int, user_answer: str) -> QuizAnswerCheckResponse:
+async def check_single_answer_with_hint(
+    db: Session, 
+    user_id: int,           # 🔥 라우터에서 받아올 유저 ID
+    sentence_id: int, 
+    user_answer: str,
+    attempt_count: int = 1  # 🔥 라우터에서 받아올 시도 횟수
+) -> QuizAnswerCheckResponse:
     """
-    [실시간 단일 문항 채점 및 GPT 뉘앙스 힌트 파이프라인]
-    - 유저가 입력한 텍스트를 즉석 채점합니다.
-    - 틀렸을 경우, GPT-5를 가동하여 정답 단어와 유저 오답 간의 차이점을 분석한 힌트를 동적 생성합니다.
+    [실시간 단일 문항 채점 및 투 스트라이크 오답 처리 엔진]
     """
-    # 1. 대상 단어 레코드 쿼리
     vocab = db.query(Vocabulary).filter(Vocabulary.vocab_id == sentence_id).first()
     
-    # [방어 코드] CSV 전처리 전이라 DB가 비어있을 때의 목업 스위칭 (출제용 데이터와 동기화)
     if not vocab:
         mock_db = {
             1: {"word": "appointment", "expr": "I want to make an appointment with the doctor."},
             2: {"word": "circumstances", "expr": "Despite the challenging circumstances, she managed to pass."},
             3: {"word": "decision", "expr": "Please make your decision now for the final contract."}
         }
-        
-        # sentence_id로 목업 데이터를 찾고, 없으면 fallback 빈값 처리
         mock_item = mock_db.get(sentence_id, {"word": "unknown", "expr": ""})
         true_word = mock_item["word"]
         orig_expr = mock_item["expr"]
+        is_mock_data = True
     else:
         true_word = vocab.target_word
         orig_expr = vocab.expression or ""
+        is_mock_data = False
 
-    # 2. 대소문자 및 공백 제거 후 동등 비교 채점
     is_correct = user_answer.strip().lower() == true_word.strip().lower()
-    
-    # 3. 오답인 경우에만 GPT 가동하여 정밀 오답 힌트 박스 텍스트 빌드
     hint_message = None
-    if not is_correct:
+
+    # =======================================================
+    # 🌟 시도 횟수에 따른 DB 상태 업데이트 분기 처리
+    # =======================================================
+    if is_correct:
+        # 정답일 경우: 시도 횟수와 무관하게 즉시 마스터 처리
+        if not is_mock_data:
+            update_vocab_study_result(db, user_id, sentence_id, is_correct=True)
+            
+    else:
+        # 오답일 경우: 무조건 GPT 힌트 생성
         hint_message = await generate_wrong_answer_hint(
             target_word=true_word,
             user_answer=user_answer,
             context_sentence=orig_expr
         )
         
+        # 🔥 2회차 이상 틀렸을 때만 진짜 오답으로 인정하고 DB에 반영
+        if attempt_count >= 2 and not is_mock_data:
+            update_vocab_study_result(db, user_id, sentence_id, is_correct=False)
+            hint_message = f"[오답 노트에 추가되었습니다] {hint_message}"
+
     return QuizAnswerCheckResponse(
         is_correct=is_correct,
         target_word=true_word,
         hint_message=hint_message
     )
+
+
+
+def toggle_bookmark(db: Session, user_id: int, vocab_id: int, is_bookmarked: bool) -> VocabularyStudy:
+    """
+    [로직 흐름]
+    1. 유저 ID와 단어 ID로 기존 학습 이력을 조회합니다.
+    2. 이력이 없다면 새로 생성하면서 즐겨찾기 상태를 주입합니다.
+    3. 이력이 있다면 기존 레코드의 즐겨찾기 상태만 업데이트합니다.
+    """
+    study_record = db.query(VocabularyStudy).filter(
+        VocabularyStudy.user_id == user_id,
+        VocabularyStudy.vocab_id == vocab_id
+    ).first()
+
+    if not study_record:
+        # 단어를 학습하기 전에 즐겨찾기를 먼저 누른 경우 방어 로직
+        study_record = VocabularyStudy(
+            user_id=user_id,
+            vocab_id=vocab_id,
+            status="LEARNING",
+            incorrect_count=0,
+            is_bookmarked=is_bookmarked
+        )
+        db.add(study_record)
+    else:
+        # 기존 학습 기록 상태 업데이트
+        study_record.is_bookmarked = is_bookmarked
+
+    db.commit()
+    db.refresh(study_record) # 커밋 후 최신 상태를 메모리에 반영하여 반환
+    
+    return study_record
+
+def get_bookmarked_list(db: Session, user_id: int):
+    """
+    [로직 흐름]
+    1. Vocabulary(단어 마스터) 테이블과 VocabularyStudy(학습 이력) 테이블을 조인합니다.
+    2. 특정 유저의 이력 중 즐겨찾기가 켜져 있는(True) 데이터만 필터링합니다.
+    3. 가장 최근에 업데이트된(즐겨찾기 한) 순서대로 내림차순 정렬하여 반환합니다.
+    """
+    results = db.query(Vocabulary, VocabularyStudy).join(
+        VocabularyStudy, Vocabulary.vocab_id == VocabularyStudy.vocab_id
+    ).filter(
+        VocabularyStudy.user_id == user_id,
+        VocabularyStudy.is_bookmarked == True
+    ).all()
+    
+    return results
+
+
+
+def get_daily_study_history(db: Session, user_id: int):
+    today = date.today()
+
+    # ---------------------------------------------------------
+    # 1. [오늘의 통계]: 오늘 업데이트(학습)된 단어들의 수량 파악
+    # ---------------------------------------------------------
+    # (💡 updated_at 컬럼을 Date 타입으로 캐스팅하여 오늘 날짜와 비교)
+    today_records = db.query(VocabularyStudy).filter(
+        VocabularyStudy.user_id == user_id,
+        cast(VocabularyStudy.updated_at, Date) == today
+    ).all()
+
+    total_today = len(today_records)
+    
+    # 맞춘 문제 = (전체 푼 문제) - (오늘 상태가 WRONG이 되거나 오답이 증가한 문제)
+    # ※ 이 부분은 현재 프로젝트의 '정답/오답' 판별 로직(status 값)에 따라 수정이 필요할 수 있습니다.
+    correct_today = sum(1 for r in today_records if r.status == "MEMORIZED" or r.status == "LEARNING")
+    
+    accuracy = 0.0
+    if total_today > 0:
+        accuracy = round((correct_today / total_today) * 100, 1)
+
+    daily_stats = {
+        "total_quizzes_today": total_today,
+        "correct_quizzes_today": correct_today,
+        "accuracy_rate": accuracy
+    }
+
+    # ---------------------------------------------------------
+    # 2. [누적 오답 리스트]: 언제 틀렸든 현재 상태가 WRONG이거나 오답 카운트가 있는 단어들
+    # ---------------------------------------------------------
+    wrong_results = db.query(Vocabulary, VocabularyStudy).join(
+        VocabularyStudy, Vocabulary.vocab_id == VocabularyStudy.vocab_id
+    ).filter(
+        VocabularyStudy.user_id == user_id,
+        # 💡 오답 기준: status가 'WRONG' 이거나 (or) 오답 횟수가 1 이상인 경우
+        (VocabularyStudy.status == "WRONG") | (VocabularyStudy.incorrect_count > 0)
+    ).all()
+
+    return daily_stats, wrong_results
+
+
+
+
+def update_vocab_study_result(db: Session, user_id: int, vocab_id: int, is_correct: bool) -> VocabularyStudy:
+    """단일 문항에 대한 정답/오답 DB 기록 (Upsert)"""
+    study_record = db.query(VocabularyStudy).filter(
+        VocabularyStudy.user_id == user_id,
+        VocabularyStudy.vocab_id == vocab_id
+    ).first()
+
+    if not study_record:
+        study_record = VocabularyStudy(
+            user_id=user_id,
+            vocab_id=vocab_id,
+            status="MASTERED" if is_correct else "WRONG",
+            incorrect_count=0 if is_correct else 1,
+            is_bookmarked=False
+        )
+        db.add(study_record)
+    else:
+        if is_correct:
+            study_record.status = "MASTERED"
+        else:
+            study_record.status = "WRONG"
+            study_record.incorrect_count += 1
+            
+    # 오늘의 학습 내역 통계에 잡히도록 시간 갱신
+    study_record.updated_at = datetime.utcnow()
+    
+    db.commit()
+    db.refresh(study_record)
+    return study_record

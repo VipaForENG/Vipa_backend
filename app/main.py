@@ -54,7 +54,9 @@ app.include_router(scenario.router, prefix=f"{settings.API_V1_STR}/scenario", ta
 app.include_router(robot.router, prefix=f"{settings.API_V1_STR}/robot", tags=["Robot Control"])
 
 # 오늘의 어휘 화면 라우터 http://localhost:8000/api/v1/vocabulary/dashboard, http://localhost:8000/api/v1/vocabulary/quiz, http://localhost:8000/api/v1/vocabulary/quiz/session
+# http://localhost:8000/api/v1/vocabulary/quiz/check, http://localhost:8000/api/v1/vocabulary/{vocab_id}/bookmark, http://localhost:8000/api/v1/vocabulary/bookmarks
 app.include_router(vocabulary.router, prefix=f"{settings.API_V1_STR}/vocabulary", tags=["Vocabulary"])
+
 
 # 서버 시작 시 실행되는 로직
 @app.on_event("startup")

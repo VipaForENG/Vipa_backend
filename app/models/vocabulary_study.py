@@ -1,6 +1,6 @@
 from typing import Optional
 from datetime import datetime
-from sqlalchemy import String, ForeignKey, TIMESTAMP, CheckConstraint, UniqueConstraint
+from sqlalchemy import String, ForeignKey, TIMESTAMP, CheckConstraint, UniqueConstraint,Boolean,Column
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 from app.core.database import Base
@@ -26,6 +26,8 @@ class VocabularyStudy(Base):
         server_default=func.now(), 
         onupdate=func.now()
     )
+
+    is_bookmarked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     # 데이터 무결성을 위한 기존 제약 조건 전적으로 유지
     __table_args__ = (
