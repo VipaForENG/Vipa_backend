@@ -348,14 +348,14 @@ def get_daily_study_history(db: Session, user_id: int):
     # (💡 updated_at 컬럼을 Date 타입으로 캐스팅하여 오늘 날짜와 비교)
     today_records = db.query(VocabularyStudy).filter(
         VocabularyStudy.user_id == user_id,
-        cast(VocabularyStudy.updated_at, Date) == today
+        cast(VocabularyStudy.last_reviewed, Date) == today
     ).all()
 
     total_today = len(today_records)
     
     # 맞춘 문제 = (전체 푼 문제) - (오늘 상태가 WRONG이 되거나 오답이 증가한 문제)
     # ※ 이 부분은 현재 프로젝트의 '정답/오답' 판별 로직(status 값)에 따라 수정이 필요할 수 있습니다.
-    correct_today = sum(1 for r in today_records if r.status == "MEMORIZED" or r.status == "LEARNING")
+    correct_today = sum(1 for r in today_records if r.status in ["MASTERED", "LEARNING"])
     
     accuracy = 0.0
     if total_today > 0:
@@ -407,7 +407,7 @@ def update_vocab_study_result(db: Session, user_id: int, vocab_id: int, is_corre
             study_record.incorrect_count += 1
             
     # 오늘의 학습 내역 통계에 잡히도록 시간 갱신
-    study_record.updated_at = datetime.utcnow()
+    study_record.last_reviewed = datetime.utcnow()
     
     db.commit()
     db.refresh(study_record)
