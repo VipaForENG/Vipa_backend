@@ -52,7 +52,7 @@ def get_conversation_history_dashboard(db: Session, user_id: int):
         ConversationSession.user_id == user_id,
         SentenceLog.role == "user",
         SentenceLog.corrected_text.is_not(None),
-    ).order_by(desc(SentenceLog.created_at)).limit(5).all()
+    ).order_by(desc(SentenceLog.created_at)).all()
 
     ai_corrections = [
         {
@@ -61,6 +61,7 @@ def get_conversation_history_dashboard(db: Session, user_id: int):
             "user_input": log.original_text,
             "corrected_en": log.corrected_text,
             "feedback_ko": log.feedback_comment,
+            "created_at": log.created_at,
         }
         for log in raw_corrections
     ]
