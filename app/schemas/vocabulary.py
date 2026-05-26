@@ -83,7 +83,7 @@ class QuizAnswerCheckResponse(BaseModel):
     is_correct: bool = Field(..., description="동적 정답 여부 (O/X)")
     target_word: str = Field(..., description="실제 정답 단어 (프론트엔드 디버깅 및 대조용)")
     hint_message: Optional[str] = Field(None, description="오답 시 GPT가 실시간으로 생성한 뉘앙스 교정 힌트 텍스트")
-
+    can_retry: bool = Field(..., description="재시도 가능 여부 (True: 다시 풀기, False: 기회 박탈 및 다음 문제로)")
 
 
 
