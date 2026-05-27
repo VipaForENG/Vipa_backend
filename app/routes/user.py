@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 import secrets
-from typing import cast, List, Any
+from typing import cast, Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -12,17 +12,41 @@ from app.core.mail import fastmail
 from app.crud import user as user_crud
 from app.schemas.user import (
     Msg, VerifyRecoveryCode, PasswordRecoveryEmail, 
-    UserCreate, UserLogin, UserResponse, Token, ResetPassword
+    UserCreate, UserLogin, UserResponse, Token, ResetPassword, PasswordChangeRequest
 )
 from app.crud import level as level_crud
-
+from app.core.security import get_current_user_id
 router = APIRouter()
+
+from app.models.user import User # 추가
 
 # --- [유저 기본 기능] ---
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
+
+@router.get("/me", response_model=UserResponse)
+def read_user_me(
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id) # 🔐 토큰 검증 완료
+):
+    """
+    내 정보 조회 API:
+    JWT 토큰을 통해 인증된 유저의 상세 정보를 반환합니다.
+    """
+    # 1. DB에서 유저 조회
+    user = user_crud.get_user_by_id(db, user_id=user_id)
+    
+    # 2. 유저가 없는 경우(DB 삭제 등)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail="사용자를 찾을 수 없습니다."
+        )
+    
+    # 3. 유저 정보 반환 (UserResponse 스키마에 따라 필요한 필드들이 나갑니다)
+    return user
 
 @router.post("/signup", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def signup(user_in: UserCreate, db: Session = Depends(get_db)):
@@ -169,3 +193,55 @@ def reset_password(reset_in: ResetPassword, db: Session = Depends(get_db)):
     db.commit()
 
     return {"message": "비밀번호가 성공적으로 변경되었습니다."}
+
+
+
+# -- 비밀번호 재설정 (인증된 유저용) ---
+
+
+@router.patch("/mypage/change-password")
+def change_password(
+    data: PasswordChangeRequest, 
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id) # 이미 잘 정의되어 있음
+):
+    # 1. DB에서 유저 조회 (db_user가 None일 수 있음을 인지)
+    db_user = db.query(User).filter(User.user_id == user_id).first()
+    
+    # 2. 유저가 없을 경우 Null 체크 (Pylance 에러 해결)
+    if not db_user:
+        raise HTTPException(status_code=404, detail="유저를 찾을 수 없습니다.")
+    
+    # 3. 기존 비밀번호 검증 (db_user.password가 None일 경우를 대비해 str()로 캐스팅)
+    if not security.verify_password(data.old_password, str(db_user.password)):
+        raise HTTPException(status_code=400, detail="기존 비밀번호가 일치하지 않습니다.")
+    
+    # 4. 새로운 비밀번호 해싱 및 저장
+    db_user.password = security.get_password_hash(data.new_password)
+    db.commit()
+    
+    return {"message": "비밀번호가 변경되었습니다."}
+
+
+# --- [회원 탈퇴] ---
+@router.delete("/withdraw", response_model=Msg)
+def withdraw_user(
+    db: Session = Depends(get_db),
+    # 1. 여기서 토큰을 검증하고 user_id를 바로 추출합니다.
+    user_id: int = Depends(get_current_user_id) 
+):
+    """
+    회원 탈퇴 API:
+    JWT 토큰에서 추출한 user_id를 사용하여 계정을 삭제합니다.
+    """
+    try:
+        # 2. 추출한 user_id를 삭제 로직에 전달
+        user_crud.delete_user(db=db, user_id=user_id)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="회원 탈퇴 처리 중 오류가 발생했습니다."
+        )
+    
+    return {"message": "계정이 성공적으로 삭제되었습니다."}

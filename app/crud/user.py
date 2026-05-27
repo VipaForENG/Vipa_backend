@@ -6,6 +6,14 @@ from app.models.robot import RobotControl
 from app.schemas.user import UserCreate
 from app.core.security import get_password_hash
 
+
+def get_user_by_id(db: Session, user_id: int):
+    """
+    유저 ID(PK)로 유저 정보를 조회합니다.
+    """
+    return db.query(User).filter(User.user_id == user_id).first()
+
+
 # --- [내부 헬퍼 함수] 로봇 초기 설정 생성 ---
 def _create_initial_robot_setting(db: Session, user_id: int):
     """
@@ -114,3 +122,22 @@ def process_social_login(db: Session, email: str, nickname: str, provider_bit: i
         _create_initial_robot_setting(db, db_user.user_id)
         
     return db_user
+
+
+
+# --- [삭제] 유저 탈퇴 ---
+def delete_user(db: Session, user_id: int):
+    """
+    유저 탈퇴: 로봇 설정 및 유저 데이터를 삭제합니다.
+    (ConversationSession, SentenceLog 등은 DB에서 CASCADE 설정이 되어있다면 
+     자동 삭제되겠지만, 없다면 여기서 명시적으로 삭제해야 합니다.)
+    """
+    # 1. 로봇 제어 데이터 삭제 (1:1 관계)
+    db.query(RobotControl).filter(RobotControl.user_id == user_id).delete()
+    
+    # 2. 유저 삭제
+    db.query(User).filter(User.user_id == user_id).delete()
+    
+    # 3. 변경사항 반영
+    db.commit()
+    return True
