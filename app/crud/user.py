@@ -141,3 +141,28 @@ def delete_user(db: Session, user_id: int):
     # 3. 변경사항 반영
     db.commit()
     return True
+
+
+
+# --- [업데이트] 유저 프로필 변경 (닉네임, 이미지) ---
+def update_user_profile(
+    db: Session, 
+    user_id: int, 
+    nickname: str | None = None, 
+    profile_image: str | None = None
+):
+    """유저의 닉네임과 프로필 이미지를 선택적으로 업데이트합니다."""
+    db_user = db.query(User).filter(User.user_id == user_id).first()
+    if not db_user:
+        return None
+
+    # 값이 전달된 경우에만 덮어쓰기
+    if nickname is not None:
+        db_user.nickname = nickname
+    if profile_image is not None:
+        db_user.profile_image = profile_image
+
+    db.commit()
+    db.refresh(db_user)
+    
+    return db_user

@@ -1,8 +1,12 @@
+
+import os
+import uuid
+import shutil
 from datetime import datetime, timedelta, timezone
 import secrets
 from typing import cast, Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from fastapi_mail import MessageSchema, MessageType
 
@@ -17,8 +21,11 @@ from app.schemas.user import (
 from app.crud import level as level_crud
 from app.core.security import get_current_user_id
 router = APIRouter()
-
+from app.core.storage import SupabaseStorageService # 추가된 서비스 임포트
 from app.models.user import User # 추가
+
+
+
 
 # --- [유저 기본 기능] ---
 
@@ -245,3 +252,69 @@ def withdraw_user(
         )
     
     return {"message": "계정이 성공적으로 삭제되었습니다."}
+
+
+
+
+
+
+
+# --- [프로필 업데이트] ---
+
+# 의존성 주입을 위한 인스턴스 생성 헬퍼
+def get_storage_service():
+    return SupabaseStorageService()
+
+@router.patch("/me/profile", response_model=UserResponse)
+async def update_my_profile(
+    nickname: str | None = Form(None, description="변경할 닉네임"),
+    profile_image: UploadFile | None = File(None, description="업로드할 이미지 파일"),
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id),
+    storage_service: SupabaseStorageService = Depends(get_storage_service) # 💡 Supabase 서비스 주입
+):
+    """
+    [API] 프로필(닉네임 및 이미지) 수정 엔드포인트
+    - 기능: 유저 검증, 닉네임 중복 체크를 수행한 후 이미지가 존재하면 Supabase Cloud 스토리지에 저장하고 그 URL을 DB에 기록합니다.
+    """
+    # 1. 대상 유저 검증
+    current_user = user_crud.get_user_by_id(db, user_id=user_id)
+    if not current_user:
+        raise HTTPException(status_code=404, detail="유저를 찾을 수 없습니다.")
+
+    # 2. 닉네임 변경 시 중복 검사
+    if nickname and nickname != current_user.nickname:
+        existing_user = user_crud.get_user_by_nickname(db, nickname=nickname)
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail="이미 사용 중인 닉네임입니다."
+            )
+
+    # 3. 이미지 업로드 로직 수행
+    image_url = current_user.profile_image
+    if profile_image:
+        try:
+            # 로컬 디스크가 아닌 Supabase Storage로 직접 업로드하고 스토리지 주소(https://...)를 받아옵니다.
+            image_url = await storage_service.save_file(profile_image, folder="avatar")
+        except RuntimeError as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=str(e)
+            )
+
+    # 4. 데이터베이스 트랜잭션 갱신
+    try:
+        updated_user = user_crud.update_user_profile(
+            db=db, 
+            user_id=user_id, 
+            nickname=nickname, 
+            profile_image=image_url
+        )
+        return updated_user
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail="데이터베이스 갱신 중 오류가 발생했습니다."
+        )
