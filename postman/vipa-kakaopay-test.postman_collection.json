@@ -1,0 +1,246 @@
+{
+  "info": {
+    "name": "VIPA KakaoPay Test API",
+    "description": "KakaoPay backend integration test requests.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Ready Payment",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"partner_order_id\": \"{{order_id}}\",\n  \"partner_user_id\": \"{{partner_user_id}}\",\n  \"item_name\": \"VIPA Monthly\",\n  \"quantity\": 1,\n  \"total_amount\": {{amount}},\n  \"tax_free_amount\": 0,\n  \"approval_url\": \"{{redirect_base_url}}/success\",\n  \"cancel_url\": \"{{redirect_base_url}}/cancel\",\n  \"fail_url\": \"{{redirect_base_url}}/fail\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/payments/kakao/ready",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "payments",
+            "kakao",
+            "ready"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Approve Payment",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tid\": \"{{kakao_tid}}\",\n  \"partner_order_id\": \"{{order_id}}\",\n  \"partner_user_id\": \"{{partner_user_id}}\",\n  \"pg_token\": \"{{kakao_pg_token}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/payments/kakao/approve",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "payments",
+            "kakao",
+            "approve"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Cancel Payment",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tid\": \"{{kakao_tid}}\",\n  \"cancel_amount\": {{amount}},\n  \"cancel_tax_free_amount\": 0\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/payments/kakao/cancel",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "payments",
+            "kakao",
+            "cancel"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Ready Subscription",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"partner_order_id\": \"{{subscription_order_id}}\",\n  \"partner_user_id\": \"{{partner_user_id}}\",\n  \"item_name\": \"VIPA Monthly\",\n  \"quantity\": 1,\n  \"total_amount\": {{amount}},\n  \"tax_free_amount\": 0,\n  \"approval_url\": \"{{redirect_base_url}}/success\",\n  \"cancel_url\": \"{{redirect_base_url}}/cancel\",\n  \"fail_url\": \"{{redirect_base_url}}/fail\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/payments/kakao/subscriptions/ready",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "payments",
+            "kakao",
+            "subscriptions",
+            "ready"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Approve Subscription",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tid\": \"{{kakao_tid}}\",\n  \"partner_order_id\": \"{{subscription_order_id}}\",\n  \"partner_user_id\": \"{{partner_user_id}}\",\n  \"pg_token\": \"{{kakao_pg_token}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/payments/kakao/subscriptions/approve",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "payments",
+            "kakao",
+            "subscriptions",
+            "approve"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Charge Subscription",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"sid\": \"{{kakao_sid}}\",\n  \"partner_order_id\": \"{{subscription_charge_order_id}}\",\n  \"partner_user_id\": \"{{partner_user_id}}\",\n  \"item_name\": \"VIPA Monthly\",\n  \"quantity\": 1,\n  \"total_amount\": {{amount}},\n  \"tax_free_amount\": 0\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/payments/kakao/subscriptions/charge",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "payments",
+            "kakao",
+            "subscriptions",
+            "charge"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Subscription Status",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"sid\": \"{{kakao_sid}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/payments/kakao/subscriptions/status",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "payments",
+            "kakao",
+            "subscriptions",
+            "status"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Inactive Subscription",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"sid\": \"{{kakao_sid}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/payments/kakao/subscriptions/inactive",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "payments",
+            "kakao",
+            "subscriptions",
+            "inactive"
+          ]
+        }
+      }
+    }
+  ]
+}

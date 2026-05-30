@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.database import engine, Base
 from app.core.config import settings
-from app.routes import chat, user, level, home , category, scenario, robot, vocabulary, conversation
+from app.routes import chat, user, level, home , category, scenario, robot, vocabulary, conversation, payment
 from app.api.v1.auth import router as auth_router
 from app.core.base_data import init_db
 from fastapi.staticfiles import StaticFiles
@@ -60,6 +60,9 @@ app.include_router(robot.router, prefix=f"{settings.API_V1_STR}/robot", tags=["R
 # 오늘의 어휘 화면 라우터 http://localhost:8000/api/v1/vocabulary/dashboard, http://localhost:8000/api/v1/vocabulary/quiz, http://localhost:8000/api/v1/vocabulary/quiz/session
 # http://localhost:8000/api/v1/vocabulary/quiz/check, http://localhost:8000/api/v1/vocabulary/{vocab_id}/bookmark, http://localhost:8000/api/v1/vocabulary/bookmarks
 app.include_router(vocabulary.router, prefix=f"{settings.API_V1_STR}/vocabulary", tags=["Vocabulary"])
+
+# Payment provider test APIs
+app.include_router(payment.router, prefix=f"{settings.API_V1_STR}/payments", tags=["Payments"])
 
 
 # 서버 시작 시 실행되는 로직
