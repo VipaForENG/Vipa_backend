@@ -7,6 +7,27 @@ from app.models.conversation_session import ConversationSession
 from app.models.custom_scenario import CustomScenario 
 from app.models.sentence_log import SentenceLog
 from app.models.category import SubCategory
+from app.models.conversation_session import ConversationSession
+from app.models.custom_scenario import CustomScenario
+from app.models.sentence_log import SentenceLog
+from app.models.study_log import StudyLog
+
+
+def _extract_scenario_title(scenario: CustomScenario | None) -> str:
+    if scenario is None:
+        return "자유 대화"
+
+    script_data = scenario.generated_script
+    if isinstance(script_data, str):
+        try:
+            script_data = json.loads(script_data)
+        except json.JSONDecodeError:
+            script_data = {}
+
+    if isinstance(script_data, dict):
+        return script_data.get("title", f"시나리오 #{scenario.scenario_id}")
+
+    return f"시나리오 #{scenario.scenario_id}"
 
 # 1. 학습 내역 리스트 조회 (통계 제거, 심플하게 리스트만 반환)
 def get_conversation_history_list(db: Session, user_id: int):
@@ -29,10 +50,10 @@ def get_conversation_history_list(db: Session, user_id: int):
         
         recent_sessions.append({
             "session_id": session.session_id,
-            "scenario_title": title,
-            "category": category,
+            "scenario_title": _extract_scenario_title(scenario),
+            "category": sub_cat.sub_title if sub_cat else "Free",
             "created_at": session.created_at,
-            "audio_url": session.audio_url
+            "audio_url": session.audio_url,
         })
 
     return recent_sessions

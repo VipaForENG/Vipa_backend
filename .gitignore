@@ -37,3 +37,9 @@ auth_key.json
 # --- OS 관련 ---
 .DS_Store
 Thumbs.db
+
+# --- Flutter / OS 임시 파일 차단 (추가) ---
+**/.plugin_symlinks/
+windows/flutter/ephemeral/
+linux/flutter/ephemeral/
+macos/Flutter/ephemeral/

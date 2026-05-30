@@ -22,6 +22,7 @@ class UserResponse(BaseModel):
     email: EmailStr
     is_social: int
     nickname: Optional[str] = None
+    profile_image: Optional[str] = None
     study_count: int
     
     class Config:

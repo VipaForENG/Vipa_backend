@@ -1,14 +1,18 @@
 from pydantic import BaseModel, ConfigDict
 from typing import List, Optional, Any
 from datetime import datetime
+from typing import List, Optional
+
+from pydantic import BaseModel, ConfigDict
+
 
 # =========================================================================
 # 1. 실전 회화 학습 내역 목록 조회 프로토콜
 # =========================================================================
 class RecentSessionItem(BaseModel):
     session_id: int
-    scenario_title: str       # (예: 입국 심사)
-    category: str             # (예: 여행)
+    scenario_title: str
+    category: str
     created_at: datetime
     audio_url: Optional[str] = None
     
