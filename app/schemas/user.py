@@ -1,6 +1,7 @@
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
 
+
 # 1. 회원가입 시 앱에서 서버로 보내는 데이터
 class UserCreate(BaseModel):
     email: EmailStr = Field(..., description="유저 이메일", json_schema_extra={"example": "user@gmail.com"})
@@ -19,7 +20,9 @@ class UserLogin(BaseModel):
 class UserResponse(BaseModel):
     user_id: int
     email: EmailStr
+    is_social: int
     nickname: Optional[str] = None
+    profile_image: Optional[str] = None
     study_count: int
     
     class Config:
@@ -57,3 +60,9 @@ class ResetPassword(BaseModel):
 # 결과 메시지 응답용
 class Msg(BaseModel):
     message: str
+
+
+# 비밀번호 변경 요청 모델 (로그인한 유저가 비밀번호 변경할 때)
+class PasswordChangeRequest(BaseModel):
+    old_password: str
+    new_password: str

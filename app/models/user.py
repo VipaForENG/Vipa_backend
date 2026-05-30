@@ -1,3 +1,4 @@
+# app/models/user.py
 from datetime import datetime
 from typing import Optional, TYPE_CHECKING
 from sqlalchemy import String, Integer, SmallInteger, DateTime
@@ -18,6 +19,9 @@ class User(Base):
     # 소셜 로그인을 위해 비밀번호와 닉네임은 Optional(Nullable) 처리
     password: Mapped[Optional[str]] = mapped_column(String(255))
     nickname: Mapped[Optional[str]] = mapped_column(String(100), unique=True)
+    
+    # [추가] 프로필 이미지 URL 또는 로컬 경로를 저장하기 위한 컬럼
+    profile_image: Mapped[Optional[str]] = mapped_column(String(255))
     
     social_role: Mapped[int] = mapped_column(SmallInteger, default=0)
     is_social: Mapped[int] = mapped_column(Integer, default=0)

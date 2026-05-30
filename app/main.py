@@ -17,6 +17,7 @@ app = FastAPI(
 )
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory="uploads"), name="static")
 
 # 2. CORS 설정 (Flutter 앱이나 웹에서 접근할 수 있도록 허용)
 app.add_middleware(

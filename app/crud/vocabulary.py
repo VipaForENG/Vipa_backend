@@ -233,13 +233,13 @@ async def process_quiz_session(db: Session, user_id: int, answers: List[AnswerIt
 
 async def check_single_answer_with_hint(
     db: Session, 
-    user_id: int,           # 🔥 라우터에서 받아올 유저 ID
+    user_id: int,          
     sentence_id: int, 
     user_answer: str,
-    attempt_count: int = 1  # 🔥 라우터에서 받아올 시도 횟수
+    attempt_count: int = 1  
 ) -> QuizAnswerCheckResponse:
     """
-    [실시간 단일 문항 채점 및 투 스트라이크 오답 처리 엔진]
+    [무한 루프 방지 완료] 2회차 오답 시 재시도를 차단하고 종료 신호를 송신합니다.
     """
     vocab = db.query(Vocabulary).filter(Vocabulary.vocab_id == sentence_id).first()
     
@@ -260,32 +260,36 @@ async def check_single_answer_with_hint(
 
     is_correct = user_answer.strip().lower() == true_word.strip().lower()
     hint_message = None
+    can_retry = False  # 기본값은 재시도 불가
 
-    # =======================================================
-    # 🌟 시도 횟수에 따른 DB 상태 업데이트 분기 처리
-    # =======================================================
     if is_correct:
-        # 정답일 경우: 시도 횟수와 무관하게 즉시 마스터 처리
+        # 맞췄으면 당연히 더 풀 필요 없음
         if not is_mock_data:
             update_vocab_study_result(db, user_id, sentence_id, is_correct=True)
+        can_retry = False
             
     else:
-        # 오답일 경우: 무조건 GPT 힌트 생성
-        hint_message = await generate_wrong_answer_hint(
-            target_word=true_word,
-            user_answer=user_answer,
-            context_sentence=orig_expr
-        )
-        
-        # 🔥 2회차 이상 틀렸을 때만 진짜 오답으로 인정하고 DB에 반영
-        if attempt_count >= 2 and not is_mock_data:
-            update_vocab_study_result(db, user_id, sentence_id, is_correct=False)
-            hint_message = f"[오답 노트에 추가되었습니다] {hint_message}"
+        # 🌟 틀렸을 때의 분기 처리
+        if attempt_count == 1:
+            # [1회차 오답] -> 기회를 한 번 더 주고(can_retry=True), GPT 힌트 생성
+            can_retry = True
+            hint_message = await generate_wrong_answer_hint(
+                target_word=true_word,
+                user_answer=user_answer,
+                context_sentence=orig_expr
+            )
+        else:
+            # [2회차 이상 오답] -> 기회 박탈(can_retry=False), DB에 WRONG 최종 기록
+            can_retry = False
+            if not is_mock_data:
+                update_vocab_study_result(db, user_id, sentence_id, is_correct=False)
+            hint_message = "기회를 모두 소진하셨습니다. 정답을 확인하고 다음 문제로 이동하세요!"
 
     return QuizAnswerCheckResponse(
         is_correct=is_correct,
         target_word=true_word,
-        hint_message=hint_message
+        hint_message=hint_message,
+        can_retry=can_retry  # 🌟 프론트엔드에게 통제권 이양
     )
 
 
