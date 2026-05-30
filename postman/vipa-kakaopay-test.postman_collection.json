@@ -17,7 +17,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"partner_order_id\": \"{{order_id}}\",\n  \"partner_user_id\": \"{{partner_user_id}}\",\n  \"item_name\": \"VIPA Monthly\",\n  \"quantity\": 1,\n  \"total_amount\": {{amount}},\n  \"tax_free_amount\": 0,\n  \"approval_url\": \"{{redirect_base_url}}/success\",\n  \"cancel_url\": \"{{redirect_base_url}}/cancel\",\n  \"fail_url\": \"{{redirect_base_url}}/fail\"\n}"
+          "raw": "{\n  \"partner_order_id\": \"{{order_id}}\",\n  \"partner_user_id\": \"{{partner_user_id}}\",\n  \"item_name\": \"VIPA Monthly\",\n  \"quantity\": 1,\n  \"total_amount\": {{amount}},\n  \"tax_free_amount\": 0,\n  \"approval_url\": \"{{base_url}}/api/v1/payments/kakao/redirect/success\",\n  \"cancel_url\": \"{{base_url}}/api/v1/payments/kakao/redirect/cancel\",\n  \"fail_url\": \"{{base_url}}/api/v1/payments/kakao/redirect/fail\"\n}"
         },
         "url": {
           "raw": "{{base_url}}/api/v1/payments/kakao/ready",
@@ -104,7 +104,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"partner_order_id\": \"{{subscription_order_id}}\",\n  \"partner_user_id\": \"{{partner_user_id}}\",\n  \"item_name\": \"VIPA Monthly\",\n  \"quantity\": 1,\n  \"total_amount\": {{amount}},\n  \"tax_free_amount\": 0,\n  \"approval_url\": \"{{redirect_base_url}}/success\",\n  \"cancel_url\": \"{{redirect_base_url}}/cancel\",\n  \"fail_url\": \"{{redirect_base_url}}/fail\"\n}"
+          "raw": "{\n  \"partner_order_id\": \"{{subscription_order_id}}\",\n  \"partner_user_id\": \"{{partner_user_id}}\",\n  \"item_name\": \"VIPA Monthly\",\n  \"quantity\": 1,\n  \"total_amount\": {{amount}},\n  \"tax_free_amount\": 0,\n  \"approval_url\": \"{{base_url}}/api/v1/payments/kakao/redirect/success\",\n  \"cancel_url\": \"{{base_url}}/api/v1/payments/kakao/redirect/cancel\",\n  \"fail_url\": \"{{base_url}}/api/v1/payments/kakao/redirect/fail\"\n}"
         },
         "url": {
           "raw": "{{base_url}}/api/v1/payments/kakao/subscriptions/ready",

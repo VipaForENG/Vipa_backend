@@ -42,9 +42,9 @@ Provider secret keys are not stored in Postman. Keep them in `backend/.env`.
   "quantity": 1,
   "total_amount": 9900,
   "tax_free_amount": 0,
-  "approval_url": "http://localhost:8000/success",
-  "cancel_url": "http://localhost:8000/cancel",
-  "fail_url": "http://localhost:8000/fail"
+  "approval_url": "http://localhost:8000/api/v1/payments/kakao/redirect/success",
+  "cancel_url": "http://localhost:8000/api/v1/payments/kakao/redirect/cancel",
+  "fail_url": "http://localhost:8000/api/v1/payments/kakao/redirect/fail"
 }
 ```
 
