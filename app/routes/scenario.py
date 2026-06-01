@@ -2,6 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session  # [L3 교정] AsyncSession 대신 Session 사용
 from app.core.database import get_db
+from app.core.security import get_current_user_id
 
 # Phase 1, Phase 2 스키마 통합 임포트
 from app.schemas.scenario import (
@@ -32,7 +33,8 @@ router = APIRouter()
 @router.post("/generate", response_model=ScenarioResponse)
 async def generate_scenario(
     req: ScenarioCreate, 
-    db: Session = Depends(get_db)  # 수정됨: Session
+    db: Session = Depends(get_db),
+    current_user_id: int = Depends(get_current_user_id)
 ):
     """
     실시간 AI 시나리오 생성 엔드포인트
@@ -40,7 +42,7 @@ async def generate_scenario(
     try:
         new_scenario = await create_custom_scenario(
             db=db,
-            user_id=req.user_id,
+            user_id=current_user_id,
             sub_cat_id=req.sub_cat_id,
             test_id=req.test_id
         )

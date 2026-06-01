@@ -23,12 +23,30 @@ async def create_custom_scenario(
     db: Session, 
     user_id: int, 
     sub_cat_id: int, 
-    test_id: int
+    test_id: int | None = None
 ):
     # 1. 사용자의 CEFR 레벨 조회 (L3 해결 포인트: await 제거)
-    stmt = select(UserLevel.cefr_level).join(LevelTestResult).where(LevelTestResult.test_id == test_id)
-    result = db.execute(stmt) # <--- 범인 체포 완료 (await 삭제)
-    cefr_level = result.scalar() or "A1"
+    if test_id is None:
+        level_stmt = (
+            select(LevelTestResult.test_id, UserLevel.cefr_level)
+            .join(UserLevel, UserLevel.user_level_id == LevelTestResult.user_level_id)
+            .where(UserLevel.user_id == user_id)
+            .order_by(LevelTestResult.created_at.desc())
+            .limit(1)
+        )
+        level_row = db.execute(level_stmt).first()
+        test_id = level_row.test_id if level_row else None
+        cefr_level = level_row.cefr_level if level_row else "A1"
+    else:
+        stmt = (
+            select(UserLevel.cefr_level)
+            .join(LevelTestResult)
+            .where(LevelTestResult.test_id == test_id, UserLevel.user_id == user_id)
+        )
+        result = db.execute(stmt) # <--- 범인 체포 완료 (await 삭제)
+        cefr_level = result.scalar()
+        if not cefr_level:
+            raise ValueError(f"해당 사용자의 레벨 테스트(ID: {test_id})를 찾을 수 없습니다.")
 
     # 2. 서브 카테고리의 기본 AI 역할 조회 (L3 해결 포인트: await 제거)
     sub_stmt = select(SubCategory).where(SubCategory.sub_cat_id == sub_cat_id)

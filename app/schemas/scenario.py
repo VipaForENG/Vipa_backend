@@ -5,9 +5,9 @@ from pydantic import BaseModel, ConfigDict
 
 class ScenarioCreate(BaseModel):
     """시나리오 생성 요청을 위한 스키마"""
-    user_id: int
     sub_cat_id: int
-    test_id: int
+    user_id: Optional[int] = None
+    test_id: Optional[int] = None
 
 
 # 시나리오 생성 API의 응답 스키마
