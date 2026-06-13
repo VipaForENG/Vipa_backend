@@ -9,6 +9,8 @@ from sqlalchemy import func, desc, Date, cast
 from app.models.vocabulary import Vocabulary
 from app.models.vocabulary_study import VocabularyStudy
 from app.models.vocab_learning_detail import VocabLearningDetail
+from app.models.study_log import StudyLog
+from app.models.user import User
 from app.schemas.vocabulary import (
     VocabularyDashboardResponse,
     VocabularyQuizResponse,
@@ -222,7 +224,15 @@ async def process_quiz_session(db: Session, user_id: int, answers: List[AnswerIt
         ))
 
     # 4. 메모리에 올라온 변경사항 중 진짜 DB 데이터가 섞여있을 때만 최종 커밋 실행 (가짜 데이터로 인한 튕김 방지)
-    if any(v is not None for v in vocab_maps.values()):
+    if answers:
+        db.add(StudyLog(
+            user_id=user_id,
+            type="VOCABULARY",
+            earned_energy=len(answers),
+        ))
+        user = db.query(User).filter(User.user_id == user_id).first()
+        if user:
+            user.study_count += len(answers)
         db.commit()
     
     return QuizSessionResultResponse(

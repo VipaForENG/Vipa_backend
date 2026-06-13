@@ -331,6 +331,9 @@ def complete_scenario_session(db: Session, session_id: int) -> SessionCompleteRe
         earned_energy=10
     )
     db.add(new_study_log)
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if user:
+        user.study_count += 10
     db.commit()
 
     # 4. 프론트엔드 UI 와이어프레임에 딱 맞는 형식으로 반환

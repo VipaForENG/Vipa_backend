@@ -64,5 +64,5 @@ class Msg(BaseModel):
 
 # 비밀번호 변경 요청 모델 (로그인한 유저가 비밀번호 변경할 때)
 class PasswordChangeRequest(BaseModel):
-    old_password: str
+    old_password: str | None = None
     new_password: str

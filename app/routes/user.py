@@ -217,7 +217,7 @@ def change_password(
         raise HTTPException(status_code=404, detail="유저를 찾을 수 없습니다.")
     
     # 3. 기존 비밀번호 검증(db_user.password가 None일 경우를 대비해 str()로 캐스팅)
-    if not security.verify_password(data.old_password, str(db_user.password)):
+    if data.old_password and not security.verify_password(data.old_password, str(db_user.password)):
         raise HTTPException(status_code=400, detail="기존 비밀번호가 일치하지 않습니다.")
     
     # 4. 새로운 비밀번호 해싱 및 저장
