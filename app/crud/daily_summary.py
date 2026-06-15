@@ -67,7 +67,18 @@ class CRUDDailySummary:
             .distinct()
             .order_by(log_date.desc())
         )
-        dates = (await db.execute(stmt)).scalars().all()
+        raw_dates = (await db.execute(stmt)).scalars().all()
+        
+        # 🔥 방어 로직: DB에서 꺼낸 날짜가 문자열일 경우를 대비해 변환
+        dates = []
+        for d in raw_dates:
+            if isinstance(d, str):
+                dates.append(datetime.strptime(d, "%Y-%m-%d").date())
+            elif isinstance(d, datetime):
+                dates.append(d.date())
+            else:
+                dates.append(d)
+
         if not dates or dates[0] < date.today() - timedelta(days=1):
             return 0
 
@@ -90,38 +101,56 @@ class CRUDDailySummary:
                 detail="사용자를 찾을 수 없습니다.",
             )
 
-        total_learning_count = int((
+        # 🔥 문자열 날짜를 안전한 date 객체로 파싱하는 헬퍼 함수
+        def to_date(d):
+            if isinstance(d, str):
+                return datetime.strptime(d, "%Y-%m-%d").date()
+            if isinstance(d, datetime):
+                return d.date()
+            return d
+
+        today = date.today()
+        log_date = func.date(StudyLog.created_at + text("INTERVAL '9 hours'"))
+
+        # 1. 누적 획득 에너지
+        total_learning_energy = int((
             await db.execute(
                 select(func.coalesce(func.sum(StudyLog.earned_energy), 0))
                 .where(StudyLog.user_id == user_id)
             )
         ).scalar() or 0)
-        type_totals = (
+
+        # 2. 오늘 획득한 에너지
+        today_type_totals = (
             await db.execute(
                 select(
                     StudyLog.type,
-                    func.coalesce(func.sum(StudyLog.earned_energy), 0).label("total"),
+                    func.coalesce(func.sum(StudyLog.earned_energy), 0).label("total_energy"),
                 )
-                .where(StudyLog.user_id == user_id)
+                .where(
+                    StudyLog.user_id == user_id,
+                    log_date == today  
+                )
                 .group_by(StudyLog.type)
             )
         ).all()
-        vocabulary_learning_count = next(
-            (int(row.total) for row in type_totals if row.type == "VOCABULARY"),
-            0,
+        
+        vocabulary_energy = next(
+            (int(row.total_energy) for row in today_type_totals if row.type == "VOCABULARY"), 0
         )
-        conversation_learning_count = next(
-            (int(row.total) for row in type_totals if row.type == "CONVERSATION"),
-            0,
+        conversation_energy = next(
+            (int(row.total_energy) for row in today_type_totals if row.type == "CONVERSATION"), 0
         )
 
+        # 3. 유저 랭킹
         total_users = int((
             await db.execute(select(func.count(User.user_id)))
         ).scalar() or 0)
+        
         learning_totals = (
             select(
                 StudyLog.user_id.label("user_id"),
-                func.sum(StudyLog.earned_energy).label("total"),
+                func.sum(StudyLog.earned_energy).label("total_energy"),
             )
             .group_by(StudyLog.user_id)
             .subquery()
@@ -129,19 +158,19 @@ class CRUDDailySummary:
         rank_higher = int((
             await db.execute(
                 select(func.count()).select_from(learning_totals).where(
-                    learning_totals.c.total > total_learning_count
+                    learning_totals.c.total_energy > total_learning_energy
                 )
             )
         ).scalar() or 0)
+        
         top_percent = (
             round(((rank_higher + 1) / total_users) * 100, 1)
             if total_users > 0
             else 100.0
         )
 
-        today = date.today()
+        # 4. 주간 학습 그래프 (🔥 to_date 방어 로직 적용)
         seven_days_ago = today - timedelta(days=6)
-        log_date = func.date(StudyLog.created_at + text("INTERVAL '9 hours'"))
         rows = (
             await db.execute(
                 select(
@@ -161,20 +190,10 @@ class CRUDDailySummary:
         for days_ago in range(6, -1, -1):
             target_date = today - timedelta(days=days_ago)
             conversation = next(
-                (
-                    int(row.total_energy)
-                    for row in rows
-                    if row.study_date == target_date and row.type == "CONVERSATION"
-                ),
-                0,
+                (int(row.total_energy) for row in rows if to_date(row.study_date) == target_date and row.type == "CONVERSATION"), 0
             )
             vocabulary = next(
-                (
-                    int(row.total_energy)
-                    for row in rows
-                    if row.study_date == target_date and row.type == "VOCABULARY"
-                ),
-                0,
+                (int(row.total_energy) for row in rows if to_date(row.study_date) == target_date and row.type == "VOCABULARY"), 0
             )
             weekly_data.append({
                 "date": str(target_date),
@@ -183,9 +202,10 @@ class CRUDDailySummary:
                 "total_energy": conversation + vocabulary,
             })
 
+        # 5. 주간 출석부 (🔥 to_date 방어 로직 적용)
         start_of_week = today - timedelta(days=today.weekday())
         end_of_week = start_of_week + timedelta(days=6)
-        attendance_dates = (
+        raw_attendance_dates = (
             await db.execute(
                 select(log_date)
                 .where(
@@ -198,7 +218,12 @@ class CRUDDailySummary:
             )
         ).scalars().all()
 
+        # 꺼낸 데이터를 무조건 date 객체로 변환
+        attendance_dates = [to_date(item) for item in raw_attendance_dates]
+
         day_names = ["월", "화", "수", "목", "금", "토", "일"]
+        
+        # 6. 티어 시스템
         tiers = [
             ("BRONZE", 0, 50),
             ("SILVER", 50, 150),
@@ -210,13 +235,13 @@ class CRUDDailySummary:
         tier = "MASTER"
         achievement_rate = 100
         for name, minimum, maximum in tiers:
-            if maximum is None or total_learning_count < maximum:
+            if maximum is None or total_learning_energy < maximum:
                 tier = name
                 achievement_rate = (
                     100
                     if maximum is None
                     else round(
-                        (total_learning_count - minimum)
+                        (total_learning_energy - minimum)
                         / (maximum - minimum)
                         * 100
                     )
@@ -227,17 +252,14 @@ class CRUDDailySummary:
             "nickname": user.nickname or "사용자",
             "tier": tier,
             "top_percent": top_percent,
-            "total_learning_count": total_learning_count,
-            "today_vocabulary_count": vocabulary_learning_count,
-            "today_conversation_count": conversation_learning_count,
+            "total_learning_energy": total_learning_energy,
+            "today_vocabulary_energy": vocabulary_energy,
+            "today_conversation_energy": conversation_energy,
             "weekly_data": weekly_data,
             "attendance": [day_names[item.weekday()] for item in attendance_dates],
             "attendance_dates": [str(item) for item in attendance_dates],
-            "continuous_attendance_count": await self.calculate_continuous_attendance(
-                db, user_id
-            ),
+            "continuous_attendance_count": await self.calculate_continuous_attendance(db, user_id),
             "study_achievement_rate": achievement_rate,
         }
-
 
 daily_summary_crud = CRUDDailySummary()

@@ -1,8 +1,6 @@
 from typing import List
-
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
-
 
 class WeeklyEnergyData(BaseModel):
     date: str
@@ -10,14 +8,13 @@ class WeeklyEnergyData(BaseModel):
     vocab_energy: int
     total_energy: int
 
-
 class HomeSummaryResponse(BaseModel):
     nickname: str
     tier: str
     top_percent: float
-    total_learning_count: int
-    today_vocabulary_count: int
-    today_conversation_count: int
+    total_learning_energy: int       
+    today_vocabulary_energy: int     
+    today_conversation_energy: int   
     weekly_data: List[WeeklyEnergyData]
     attendance: List[str]
     attendance_dates: List[str]
