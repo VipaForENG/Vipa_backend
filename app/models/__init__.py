@@ -3,7 +3,6 @@
 
 from .user import User
 from .level import UserLevel, LevelTestResult
-from .robot import RobotControl
 from .category import MainCategory, SubCategory
 from .vocabulary import Vocabulary
 from .custom_scenario import CustomScenario

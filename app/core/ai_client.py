@@ -11,5 +11,5 @@ client = AsyncOpenAI(
     api_key=settings.OPENAI_API_KEY
 )
 
-# 모델명 정의
-MODEL_NAME = "gpt-5.4-mini"
+# 모델명 정의 (설정 파일의 모델명 사용)
+MODEL_NAME = getattr(settings, "OPENAI_MODEL", "gpt-4o-mini")

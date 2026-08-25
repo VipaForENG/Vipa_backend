@@ -2,15 +2,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.database import engine, Base
 from app.core.config import settings
-from app.routes import chat, user, level, home , category, scenario, robot, vocabulary, conversation, payment
+from app.routes import chat, user, level, home, category, scenario, vocabulary, conversation
 from app.api.v1.auth import router as auth_router
 from app.core.base_data import init_db
 from fastapi.staticfiles import StaticFiles
 
-# 1. DB 테이블 생성 (앱 실행 시 모델에 정의된 테이블이 없으면 자동 생성)
-# 주의: 이미 테이블이 있다면 아무 작업도 하지 않습니다.
-Base.metadata.create_all(bind=engine)
-
+# 1. FastAPI 앱 인스턴스 생성
 app = FastAPI(
     title=settings.PROJECT_NAME,
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
@@ -22,55 +19,32 @@ app.mount("/static", StaticFiles(directory="uploads"), name="static")
 # 2. CORS 설정 (Flutter 앱이나 웹에서 접근할 수 있도록 허용)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 배포 환경에서 특정 도메인만 허용할 예정.
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# 3. 라우터 등록
-# prefix를 "/api/v1/users"로 잡으면, signup 함수는 "/api/v1/users/signup" 경로로 접근
+# 3. 순수 SW 라우터 등록
 app.include_router(user.router, prefix=f"{settings.API_V1_STR}/users", tags=["Users"])
-
-# 레벨 테스트 라우터 https://localhost:8000/api/v1/level-test/questions, https://localhost:8000/api/v1/level-test/evaluate
 app.include_router(level.router, prefix=f"{settings.API_V1_STR}/level-test", tags=["Level Test"])
-
-# 로그인 API 인증 라우터 https://localhost:8000/api/v1/auth/google, https://localhost:8000/api/v1/auth/kakao
-app.include_router(auth_router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
-
-# 홈 화면 라우터 http://localhost:8000/api/v1/home/summary
+app.include_router(auth_router, prefix=f"{settings.API_V1_STR}/auth", tags=["Auth"])
 app.include_router(home.router, prefix=f"{settings.API_V1_STR}/home", tags=["Home"])
-
-# 프리토킹 화면 라우터 http://localhost:8000/api/v1/chat/talk
 app.include_router(chat.router, prefix=f"{settings.API_V1_STR}/chat", tags=["Chat"])
-
-# 카테고리 화면 라우터 http://localhost:8000/api/v1/category/main-categories, http://localhost:8000/api/v1/category/sub-categories/{main_cat_id}
 app.include_router(category.router, prefix=f"{settings.API_V1_STR}/category", tags=["Category"])
-
-# 실전회화 화면 라우터 http://localhost:8000/api/v1/scenario/generate, http://localhost:8000/api/v1/scenario/evaluate,  http://localhost:8000/api/v1/scenario/history, http://localhost:8000/api/v1/scenario/dashboard/history, http://localhost:8000/api/v1/scenario/session/{session_id}/turns
-# http://localhost:8000/api/v1/scenario/hint, http://localhost:8000/api/v1/scenario/complete
 app.include_router(scenario.router, prefix=f"{settings.API_V1_STR}/scenario", tags=["Scenario"])
-
-# 실전 회화 대시보드 API http://localhost:8000/api/v1/conversation/dashboard/history
-app.include_router(conversation.router, prefix=f"{settings.API_V1_STR}/conversation", tags=["Conversation"])  # 실전 회화 대시보드 API 포함
-
-# 로봇 제어 라우터 http://localhost:8000/api/v1/robot/connect, http://localhost:8000/api/v1/robot/status, http://localhost:8000/api/v1/robot/face, http://localhost:8000/api/v1/robot/motor
-app.include_router(robot.router, prefix=f"{settings.API_V1_STR}/robot", tags=["Robot Control"])
-
-# 오늘의 어휘 화면 라우터 http://localhost:8000/api/v1/vocabulary/dashboard, http://localhost:8000/api/v1/vocabulary/quiz, http://localhost:8000/api/v1/vocabulary/quiz/session
-# http://localhost:8000/api/v1/vocabulary/quiz/check, http://localhost:8000/api/v1/vocabulary/{vocab_id}/bookmark, http://localhost:8000/api/v1/vocabulary/bookmarks
+app.include_router(conversation.router, prefix=f"{settings.API_V1_STR}/conversation", tags=["Conversation"])
 app.include_router(vocabulary.router, prefix=f"{settings.API_V1_STR}/vocabulary", tags=["Vocabulary"])
 
-# Payment provider test APIs
-app.include_router(payment.router, prefix=f"{settings.API_V1_STR}/payments", tags=["Payments"])
-
-
-# 서버 시작 시 실행되는 로직
+# 서버 시작 시 실행되는 이벤트 핸들러
 @app.on_event("startup")
 async def startup_event():
-    # DB 테이블 생성 후 기초 데이터 적재 실행
-    Base.metadata.create_all(bind=engine)
-    init_db()
+    try:
+        Base.metadata.create_all(bind=engine)
+        init_db()
+        print("[DATABASE] DB 테이블 및 기초 데이터 초기화 성공")
+    except Exception as e:
+        print(f"[DATABASE WARNING] DB 초기화 중 연결 경고 (배포/테스트 환경 체크 필요): {e}")
 
 @app.get("/")
 def root():

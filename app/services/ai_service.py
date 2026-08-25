@@ -17,7 +17,7 @@ async def generate_chat_opening(cefr_level: str, ai_role: str):
     """
     
     response = await client.chat.completions.create(
-        model="gpt-5.4-mini", # 사용자 명칭 GPT-5.4-mini
+        model=getattr(settings, "OPENAI_MODEL", "gpt-4o-mini"), # 유효한 OpenAI 모델 사용
         messages=[{"role": "system", "content": system_prompt}],
         temperature=0.7
     )

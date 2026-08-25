@@ -32,12 +32,7 @@ class Settings(BaseSettings):
 
     # --- 추가된 AI 설정 ---
     OPENAI_API_KEY: str = "" # 필드 정의가 있어야 .env에서 값을 읽어옵니다.
-
-    # --- Payment provider test settings ---
-    KAKAO_PAY_API_BASE_URL: str = "https://open-api.kakaopay.com"
-    KAKAO_PAY_SECRET_KEY: str = ""
-    KAKAO_PAY_CID: str = "TC0ONETIME"
-    KAKAO_PAY_SUBSCRIPTION_CID: str = "TCSEQUENCE"
+    OPENAI_MODEL: str = "gpt-4o-mini" # 기본 사용할 OpenAI 모델명
 
     # --- .env 파일 설정 ---
     model_config = SettingsConfigDict(

@@ -1,6 +1,5 @@
 # app/schemas/__init__.py
 from .user import UserCreate, UserLogin, UserResponse, Token
-from .robot import RobotStatus
 from .level import LevelTestResponse, LevelTestDetail
 from .category import MainCategoryResponse, SubCategoryResponse
 from .vocabulary import VocabularyResponse, VocabularyStudyUpdate

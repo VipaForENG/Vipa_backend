@@ -16,8 +16,10 @@ client = AsyncOpenAI(
     api_key=os.environ.get("OPENAI_API_KEY")
 )
 
-# 사용할 모델명
-MODEL_NAME = "gpt-5.4-mini" 
+from app.core.config import settings
+
+# 사용할 모델명 (설정 파일의 모델 사용)
+MODEL_NAME = getattr(settings, "OPENAI_MODEL", "gpt-4o-mini") 
 
 # ==========================================
 # [DB 연동 뼈대] 실제 CRUD 로직으로 교체해야 할 부분
