@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 .pytest_cache/
 .python-version
+*.log
 
 # --- 가상환경 (Virtual Environments) ---
 venv/
@@ -20,25 +21,32 @@ share/
 
 # --- 환경 변수 및 설정 (절대 올리면 안 됨!) ---
 .env
+.env.*
 .flaskenv
 *.secrets
 auth_key.json
 
-# --- 데이터베이스 (로컬 테스트용 DB) ---
+# --- 로컬 런타임 산출물 ---
+static/
+uploads/
+media/
 *.db
 *.sqlite3
+vipa_local.db
 
-# --- IDE (VS Code, PyCharm 등) ---
+# --- 데이터 (로컬/학습용 생성물) ---
+data/raw/
+data/processed/
+
+# --- IDE / OS ---
 .vscode/
 .idea/
 *.swp
 *.swo
-
-# --- OS 관련 ---
 .DS_Store
 Thumbs.db
 
-# --- Flutter / OS 임시 파일 차단 (추가) ---
+# --- Flutter / OS 임시 파일 ---
 **/.plugin_symlinks/
 windows/flutter/ephemeral/
 linux/flutter/ephemeral/

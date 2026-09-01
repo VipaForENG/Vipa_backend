@@ -5,16 +5,12 @@ from app.core.config import settings
 from app.routes import chat, user, level, home, category, scenario, vocabulary, conversation
 from app.api.v1.auth import router as auth_router
 from app.core.base_data import init_db
-from fastapi.staticfiles import StaticFiles
 
 # 1. FastAPI 앱 인스턴스 생성
 app = FastAPI(
     title=settings.PROJECT_NAME,
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
-
-app.mount("/static", StaticFiles(directory="static"), name="static")
-app.mount("/static", StaticFiles(directory="uploads"), name="static")
 
 # 2. CORS 설정 (Flutter 앱이나 웹에서 접근할 수 있도록 허용)
 app.add_middleware(

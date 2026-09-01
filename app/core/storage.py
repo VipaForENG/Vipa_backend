@@ -12,13 +12,13 @@ class BaseStorageService(ABC):
         pass
 
 class SupabaseStorageService(BaseStorageService):
-    def __init__(self):
+    def __init__(self, bucket_name: str | None = None):
         self.url: str = os.getenv("SUPABASE_URL", "")
-        
+
         # 💡 [핵심 수정] anon_key 대신 service_key를 불러옵니다.
-        self.key: str = os.getenv("SUPABASE_SERVICE_KEY", "") 
-        self.bucket_name: str = os.getenv("SUPABASE_BUCKET_NAME", "profiles")
-        
+        self.key: str = os.getenv("SUPABASE_SERVICE_KEY", "")
+        self.bucket_name: str = bucket_name or os.getenv("SUPABASE_BUCKET_NAME", "profiles")
+
         # 이제 관리자 권한을 가진 클라이언트가 생성됩니다. (RLS 정책 무시)
         self.client: Client = create_client(self.url, self.key)
 
