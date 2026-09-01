@@ -24,11 +24,9 @@ else:
     ASYNC_DATABASE_URL = raw_url.replace("postgresql://", "postgresql+asyncpg://")
     try:
         engine = create_engine(SQLALCHEMY_DATABASE_URL)
-        # 빠른 연결 테스트
         with engine.connect() as conn:
             pass
-    except Exception as e:
-        print(f"[DB WARNING] 원격 DB 접속 실패 ({e}), 로컬 SQLite로 자동 전환합니다.")
+    except Exception:
         SQLALCHEMY_DATABASE_URL = LOCAL_SQLITE_URL
         ASYNC_DATABASE_URL = LOCAL_ASYNC_SQLITE_URL
         engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})

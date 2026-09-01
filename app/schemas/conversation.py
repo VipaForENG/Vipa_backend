@@ -39,10 +39,11 @@ class ScriptLineItem(BaseModel):
 class ConversationScriptResponse(BaseModel):
     session_id: int
     scenario_title: str
-    ai_passage_en: str     # ✨ 필수 추가
-    ai_passage_ko: str     # ✨ 필수 추가
-    full_turns: List[Any]  # ✨ 필수 추가
-    scripts: List[dict]    # scripts를 담을 리스트
+    ai_passage_en: str
+    ai_passage_ko: str
+    full_turns: List[Any]
+    scripts: List[dict]
+    audio_url: Optional[str] = None
 
     class Config:
         from_attributes = True

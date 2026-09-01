@@ -107,5 +107,6 @@ def get_session_script_detail(db: Session, session_id: int, user_id: int):
         "ai_passage_en": ai_passage,
         "ai_passage_ko": ai_passage,
         "full_turns": full_turns,
-        "scripts": scripts_list
+        "scripts": scripts_list,
+        "audio_url": session_obj.audio_url,
     }

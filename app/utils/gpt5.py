@@ -34,7 +34,6 @@ async def update_daily_token_usage(db: AsyncSession, user_id: int, used_tokens: 
     """
     TODO: 실제 DB 로직 연동 필요
     """
-    print(f"[토큰 기록] 유저 {user_id}가 {used_tokens} 토큰을 추가로 사용했습니다.")
     pass
 # ==========================================
 
@@ -85,8 +84,7 @@ async def generate_test_questions() -> list:
         parsed_data = json.loads(raw_content)
         return parsed_data.get("questions", [])
 
-    except Exception as e:
-        print(f"GPT 질문 생성 중 에러 발생: {e}")
+    except Exception:
         return [
             {
                 "id": 1, "cefr_level": "A1", 
@@ -149,7 +147,6 @@ async def analyze_user_answers(user_answers: list) -> dict:
         }
 
     except Exception as e:
-        print(f"답변 분석 중 에러 발생: {e}")
         return {
             "cefr_level": "A1",
             "overall_score": 0.0,
@@ -228,8 +225,7 @@ async def get_chat_response(db: AsyncSession, user_id: int, user_message: str, h
             
         return json.loads(raw_content)
 
-    except Exception as e:
-        print(f"Chat Error: {e}")
+    except Exception:
         return {
             "en": "I'm sorry, I'm having trouble connecting.",
             "ko": "죄송해요, 연결에 문제가 발생했습니다.",
@@ -293,7 +289,5 @@ async def generate_wrong_answer_hint(target_word: str, user_answer: str, context
             
         return hint_result.strip()
 
-    except Exception as e:
-        # 4. 실시간 AI 통신 장애를 방지하기 위한 안전한 하드코딩 Fallback 선언
-        print(f"오답 힌트 생성 중 엔지니어링 에러 발생: {e}")
+    except Exception:
         return f"입력하신 '{user_answer}'도 유사한 맥락일 수 있으나, 본 예문의 문맥에서는 다른 단어가 더 자연스럽습니다. 단어의 글자 수와 뜻을 다시 한번 고민해 보세요!"

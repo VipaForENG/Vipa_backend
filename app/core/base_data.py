@@ -28,10 +28,6 @@ def info_seed_data(db: Session):
             db.add(main_cat)
             db.commit() # ID 생성을 위해 커밋
             db.refresh(main_cat)
-            print(f"✅ 새 메인 카테고리 추가: {main_title}")
-        else:
-            # 이미 존재하면 로그만 남기고 다음 단계로 진행
-            print(f"ℹ️ 기존 메인 카테고리 발견: {main_title} (ID: {main_cat.main_cat_id})")
 
         # 서브 카테고리 체크
         for sub in subs:
@@ -47,7 +43,6 @@ def info_seed_data(db: Session):
                     ai_role=sub["ai_role"]
                 )
                 db.add(new_sub)
-                print(f"   ㄴ ✅ 새 서브 카테고리 추가: {sub['sub_title']}")
     
     db.commit()
 

@@ -38,9 +38,8 @@ async def startup_event():
     try:
         Base.metadata.create_all(bind=engine)
         init_db()
-        print("[DATABASE] DB 테이블 및 기초 데이터 초기화 성공")
-    except Exception as e:
-        print(f"[DATABASE WARNING] DB 초기화 중 연결 경고 (배포/테스트 환경 체크 필요): {e}")
+    except Exception:
+        pass
 
 @app.get("/")
 def root():
