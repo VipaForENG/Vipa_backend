@@ -11,10 +11,48 @@
 
 ![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge\&logo=python\&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge\&logo=fastapi\&logoColor=white)
+
+`REST API` `Pydantic` `Uvicorn`
+
+<br>
+
+## Database
+
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge\&logo=postgresql\&logoColor=white)
 ![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-D71F00?style=for-the-badge\&logo=sqlalchemy\&logoColor=white)
+
+`SQLAlchemy` `AsyncSession` `asyncpg` `Alembic`
+
+<br>
+
+## Authentication
+
+`JWT` `OAuth 2.0` `bcrypt`
+
+![Google](https://img.shields.io/badge/Google%20Login-4285F4?style=for-the-badge\&logo=google\&logoColor=white)
+![Kakao](https://img.shields.io/badge/Kakao%20Login-FFCD00?style=for-the-badge\&logo=kakao\&logoColor=000000)
+
+<br>
+
+## AI
+
 ![OpenAI](https://img.shields.io/badge/OpenAI-412991?style=for-the-badge\&logo=openai\&logoColor=white)
-![Supabase](https://img.shields.io/badge/Supabase-3FCF8E?style=for-the-badge\&logo=supabase\&logoColor=white)
+
+`AsyncOpenAI`
+`Structured JSON Output`
+`CEFR Evaluation`
+`Conversation Generation`
+`Generative Evaluation`
+
+<br>
+
+## Storage
+
+![Supabase](https://img.shields.io/badge/Supabase%20Storage-3FCF8E?style=for-the-badge\&logo=supabase\&logoColor=white)
+
+`Profile Images` `Conversation Audio`
+
+<br>
 
 </div>
 
@@ -1200,57 +1238,6 @@ asyncpg
 ```
 
 를 사용합니다.
-
-<br>
-
----
-
-# 🛠️ Tech Stack
-
-## Backend
-
-![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge\&logo=python\&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge\&logo=fastapi\&logoColor=white)
-
-`REST API` `Pydantic` `Uvicorn`
-
-<br>
-
-## Database
-
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge\&logo=postgresql\&logoColor=white)
-![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-D71F00?style=for-the-badge\&logo=sqlalchemy\&logoColor=white)
-
-`SQLAlchemy` `AsyncSession` `asyncpg` `Alembic`
-
-<br>
-
-## Authentication
-
-`JWT` `OAuth 2.0` `bcrypt`
-
-![Google](https://img.shields.io/badge/Google%20Login-4285F4?style=for-the-badge\&logo=google\&logoColor=white)
-![Kakao](https://img.shields.io/badge/Kakao%20Login-FFCD00?style=for-the-badge\&logo=kakao\&logoColor=000000)
-
-<br>
-
-## AI
-
-![OpenAI](https://img.shields.io/badge/OpenAI-412991?style=for-the-badge\&logo=openai\&logoColor=white)
-
-`AsyncOpenAI`
-`Structured JSON Output`
-`CEFR Evaluation`
-`Conversation Generation`
-`Generative Evaluation`
-
-<br>
-
-## Storage
-
-![Supabase](https://img.shields.io/badge/Supabase%20Storage-3FCF8E?style=for-the-badge\&logo=supabase\&logoColor=white)
-
-`Profile Images` `Conversation Audio`
 
 <br>
 
