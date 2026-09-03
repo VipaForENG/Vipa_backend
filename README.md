@@ -1781,6 +1781,275 @@ https://github.com/VipaForENG/Vipa_frontend
 
 ---
 
+# 🚀 Getting Started
+
+## 1. Clone Repository
+
+```bash
+git clone https://github.com/VipaForENG/Vipa_backend.git
+cd Vipa_backend
+```
+
+<br>
+
+## 2. Create Virtual Environment
+
+### Windows
+
+```bash
+python -m venv venv
+venv\Scripts\activate
+```
+
+### macOS / Linux
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+<br>
+
+## 3. Install Dependencies
+
+```bash
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+주요 Backend Dependency:
+
+```text
+FastAPI
+Uvicorn
+
+SQLAlchemy
+PostgreSQL
+asyncpg
+Alembic
+
+JWT
+bcrypt
+
+OpenAI API
+Supabase
+
+FastAPI Mail
+```
+
+<br>
+
+## 4. Configure Environment Variables
+
+프로젝트 Root에 `.env` 파일을 생성합니다.
+
+```env
+# Database
+DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/DATABASE
+
+# JWT
+SECRET_KEY=YOUR_SECRET_KEY
+ALGORITHM=HS256
+
+# OpenAI
+OPENAI_API_KEY=YOUR_OPENAI_API_KEY
+OPENAI_MODEL=gpt-4o-mini
+
+# Mail
+MAIL_USERNAME=YOUR_EMAIL
+MAIL_PASSWORD=YOUR_APP_PASSWORD
+MAIL_FROM=YOUR_EMAIL
+MAIL_PORT=587
+MAIL_SERVER=smtp.gmail.com
+
+# Supabase
+SUPABASE_URL=YOUR_SUPABASE_URL
+SUPABASE_SERVICE_KEY=YOUR_SUPABASE_SERVICE_KEY
+SUPABASE_BUCKET_NAME=profiles
+SUPABASE_AUDIO_BUCKET_NAME=audio
+```
+
+> API Key, Database Password, JWT Secret과 같은 민감한 값은 Repository에 Commit하지 않습니다.
+
+<br>
+
+## 5. Prepare PostgreSQL
+
+PostgreSQL에 VIPA에서 사용할 Database를 생성합니다.
+
+예:
+
+```sql
+CREATE DATABASE vipa;
+```
+
+이후 `.env`의 `DATABASE_URL`을 생성한 Database에 맞게 설정합니다.
+
+예:
+
+```env
+DATABASE_URL=postgresql://postgres:password@localhost:5432/vipa
+```
+
+<br>
+
+## 6. Run Database Migration
+
+VIPA는 **Alembic**을 이용해 Database Schema Migration을 관리합니다.
+
+```bash
+alembic upgrade head
+```
+
+Migration 상태 확인:
+
+```bash
+alembic current
+```
+
+Migration History 확인:
+
+```bash
+alembic history
+```
+
+<br>
+
+## 7. Run Backend Server
+
+개발 서버를 실행합니다.
+
+```bash
+uvicorn app.main:app --reload
+```
+
+기본 서버 주소:
+
+```text
+http://127.0.0.1:8000
+```
+
+<br>
+
+## 8. API Documentation
+
+FastAPI에서 자동 생성되는 API 문서를 확인할 수 있습니다.
+
+### Swagger UI
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+### ReDoc
+
+```text
+http://127.0.0.1:8000/redoc
+```
+
+<br>
+
+## 9. API Base URL
+
+VIPA Backend의 주요 API는 다음 Prefix를 사용합니다.
+
+```text
+/api/v1
+```
+
+예:
+
+```text
+http://127.0.0.1:8000/api/v1/users
+http://127.0.0.1:8000/api/v1/auth
+http://127.0.0.1:8000/api/v1/level-test
+http://127.0.0.1:8000/api/v1/chat
+http://127.0.0.1:8000/api/v1/scenario
+http://127.0.0.1:8000/api/v1/vocabulary
+```
+
+<br>
+
+---
+
+# 💻 Local Development
+
+전체 개발 환경의 기본 흐름은 다음과 같습니다.
+
+```text
+Clone Repository
+       ↓
+Virtual Environment
+       ↓
+Install Dependencies
+       ↓
+.env
+       ↓
+PostgreSQL
+       ↓
+Alembic Migration
+       ↓
+FastAPI
+       ↓
+Swagger
+       ↓
+Flutter Client
+```
+
+Frontend와 함께 실행할 경우:
+
+```text
+Flutter
+   ↓
+http://127.0.0.1:8000/api/v1
+   ↓
+FastAPI
+   ↓
+PostgreSQL
+```
+
+Android Emulator에서 Local Backend에 접근하는 경우
+Frontend에서는 일반적으로 다음 주소를 사용합니다.
+
+```text
+http://10.0.2.2:8000/api/v1
+```
+
+<br>
+
+---
+
+# 🧪 Optional — SQLite Local Mode
+
+VIPA Backend에는 PostgreSQL 연결 정보가 없는 경우
+Local SQLite를 사용하는 Fallback 구조가 포함되어 있습니다.
+
+강제로 SQLite를 사용하려면:
+
+### Windows PowerShell
+
+```powershell
+$env:VIPA_USE_SQLITE="true"
+uvicorn app.main:app --reload
+```
+
+### macOS / Linux
+
+```bash
+export VIPA_USE_SQLITE=true
+uvicorn app.main:app --reload
+```
+
+SQLite Database:
+
+```text
+vipa_local.db
+```
+
+> 실제 서비스 및 팀 개발 환경에서는 PostgreSQL 사용을 권장합니다.
+
+---
+
 # 👨‍💻 Backend Lead
 
 **엄인섭**
