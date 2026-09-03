@@ -61,7 +61,7 @@ Study Log            Correction / Feedback
 
 ---
 
-# 👨‍💻 My Role — Backend Lead
+# 👨‍💻 엄인섭 — Backend Lead
 
 팀 프로젝트에서 Backend 파트를 담당하며
 서비스의 데이터 구조와 API 흐름을 중심으로 개발했습니다.
