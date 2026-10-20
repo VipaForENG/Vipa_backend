@@ -14,6 +14,7 @@ email-validator
 
 # 2. Database & ORM
 sqlalchemy[asyncio]
+psycopg[binary]
 psycopg2-binary
 asyncpg
 aiosqlite

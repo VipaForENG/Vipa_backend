@@ -47,10 +47,10 @@ def get_db():
     finally:
         db.close()
 
-try:
-    async_engine = create_async_engine(ASYNC_DATABASE_URL)
-except Exception:
-    async_engine = create_async_engine(LOCAL_ASYNC_SQLITE_URL)
+async_engine = create_async_engine(
+    ASYNC_DATABASE_URL,
+    pool_pre_ping=True
+)
 
 AsyncSessionLocal = async_sessionmaker(async_engine, class_=AsyncSession, expire_on_commit=False)
 
