@@ -23,13 +23,19 @@ else:
     SQLALCHEMY_DATABASE_URL = raw_url
     ASYNC_DATABASE_URL = raw_url.replace("postgresql://", "postgresql+asyncpg://")
     try:
-        engine = create_engine(SQLALCHEMY_DATABASE_URL)
+        engine = create_engine(
+            SQLALCHEMY_DATABASE_URL,
+            pool_pre_ping=True
+        )
+
         with engine.connect() as conn:
-            pass
-    except Exception:
-        SQLALCHEMY_DATABASE_URL = LOCAL_SQLITE_URL
-        ASYNC_DATABASE_URL = LOCAL_ASYNC_SQLITE_URL
-        engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
+            conn.exec_driver_sql("SELECT 1")
+
+        print("PostgreSQL connection successful")
+
+    except Exception as e:
+        print(f"PostgreSQL connection failed: {type(e).__name__}: {e}")
+        raise
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
