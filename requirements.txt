@@ -12,7 +12,7 @@ bcrypt==3.2.2
 fastapi-mail
 
 # 2. Database & ORM
-SQLAlchemy
+sqlalchemy[asyncio]
 psycopg2-binary
 asyncpg
 alembic
