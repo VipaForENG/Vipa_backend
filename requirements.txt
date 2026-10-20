@@ -10,11 +10,13 @@ python-jose
 passlib
 bcrypt==3.2.2
 fastapi-mail
+email-validator
 
 # 2. Database & ORM
 sqlalchemy[asyncio]
 psycopg2-binary
 asyncpg
+aiosqlite
 alembic
 supabase
 
@@ -28,6 +30,7 @@ pandas
 torch
 transformers
 openpyxl
+tqdm
 
 # 5. Config & Utils
 pydantic
